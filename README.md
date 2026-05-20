@@ -32,18 +32,30 @@ A highly performant, AI-powered Face Recognition and Attendance tracking system 
 - Redis 8
 - Docker & Docker Compose (Optional, for containerized environments)
 
-### 1. Running with Docker (Recommended for Services)
-
-If you don't have PostgreSQL and Redis installed locally, you can easily spin them up using Docker Compose:
+### 1. Running & Stop with Docker (Recommended for Services)
 
 ```bash
-docker-compose up -d postgres redis
+# Running
+docker compose up -d --build
 ```
 
-To run the entire application (API + Database + Redis) via Docker:
+```bash
+# Stop and cleanup volumes
+docker compose down -v
+```
 
 ```bash
-docker-compose up -d --build
+# Stop containers
+docker compose stop
+```
+
+```bash
+# Restart containers
+docker compose restart
+```
+```bash
+# logs
+docker compose logs -f
 ```
 
 ### 2. Local Development Setup
