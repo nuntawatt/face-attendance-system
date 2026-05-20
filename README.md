@@ -26,7 +26,7 @@ A highly performant, AI-powered Face Recognition and Attendance tracking system 
 - Python 3.11+
 - PostgreSQL 17
 - Redis 8
-- Docker & Docker Compose (Optional, for containerized environments)
+- Docker
 
 ### 1. Docker Service Commands
 
@@ -73,8 +73,6 @@ If you prefer to run the FastAPI server directly on your machine:
 ## Testing
 
 The project uses `pytest` for unit and integration testing. 
-
-To run the test suite:
 
 ```bash
 # Ensure you are in the virtual environment
