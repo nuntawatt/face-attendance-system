@@ -32,10 +32,13 @@ A highly performant, AI-powered Face Recognition and Attendance tracking system 
 - Redis 8
 - Docker & Docker Compose (Optional, for containerized environments)
 
-### 1. Running & Stop with Docker (Recommended for Services)
+### 1. Docker Service Commands
 
 ```bash
-# Running
+# Run
+docker compose up -d
+
+# Build the image and run
 docker compose up -d --build
 ```
 
