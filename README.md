@@ -40,24 +40,17 @@ docker compose up -d
 
 # Build the image and run
 docker compose up -d --build
-```
 
-```bash
 # Stop and cleanup volumes
 docker compose down -v
-```
 
-```bash
 # Stop containers
 docker compose stop
-```
 
-```bash
 # Restart containers
 docker compose restart
-```
-```bash
-# logs
+
+# View logs
 docker compose logs -f
 ```
 
