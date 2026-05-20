@@ -82,7 +82,7 @@ pytest tests/ -v
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 ```
 .
