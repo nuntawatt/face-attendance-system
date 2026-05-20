@@ -65,7 +65,6 @@ If you prefer to run the FastAPI server directly on your machine:
    ```bash
    uvicorn app.main:app --reload
    ```
-   *The AI models (e.g., `buffalo_s.zip`) will automatically download from InsightFace on the first run.*
 
 ---
 
