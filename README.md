@@ -2,7 +2,7 @@
 
 A highly performant, AI-powered Face Recognition and Attendance tracking system built with modern Python technologies. This backend application leverages **FastAPI** for lightning-fast API responses, **InsightFace** for state-of-the-art facial recognition, and background camera stream processing.
 
-## ✨ Features
+## Features
 
 - **AI Face Recognition**: Powered by InsightFace (buffalo_s model) for highly accurate face detection, landmark extraction, and recognition.
 - **Asynchronous Architecture**: Built entirely on `asyncio`, utilizing FastAPI, AsyncPG, and async Redis for non-blocking I/O operations.
@@ -23,7 +23,7 @@ A highly performant, AI-powered Face Recognition and Attendance tracking system 
 
 ---
 
-## Getting Started
+## ✨ Getting Started
 
 ### Prerequisites
 
@@ -69,7 +69,7 @@ If you prefer to run the FastAPI server directly on your machine:
 
 ---
 
-## 🧪 Testing
+## Testing
 
 The project uses `pytest` for unit and integration testing. 
 
