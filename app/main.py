@@ -6,11 +6,15 @@ and the lifespan context. No business logic here.
 """
 from __future__ import annotations
 
-import aioredis
+# pyrefly: ignore [missing-import]
+from redis import asyncio as aioredis
+# pyrefly: ignore [missing-import]
 from fastapi import FastAPI
+# pyrefly: ignore [missing-import]
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import employees, attendance, face
+from app.api.v1 import employee
+import app.models  # noqa: F401
 from app.core.config import settings
 from app.core.exception_handlers import app_error_handler, unhandled_exception_handler
 from app.core.exceptions import AppError
@@ -44,9 +48,7 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, unhandled_exception_handler)
 
     # Routers
-    app.include_router(employees.router, prefix="/api/v1")
-    app.include_router(face.router, prefix="/api/v1")
-    app.include_router(attendance.router, prefix="/api/v1")
+    app.include_router(employee.router, prefix="/api/v1")
 
     @app.on_event("startup")
     async def _init_redis() -> None:

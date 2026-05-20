@@ -25,6 +25,7 @@ import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
 
+# pyrefly: ignore [missing-import]
 import structlog
 
 from app.ai.engine import face_engine
@@ -101,7 +102,7 @@ class AttendanceEngine:
 
         # Record attendance
         async with self._session_factory() as session:
-            from app.repositories.attendance_repository import AttendanceRepository
+            from app.repositories.attendance import AttendanceRepository
             repo = AttendanceRepository(session)
             from app.models.attendance import AttendanceRecord
             record = AttendanceRecord(

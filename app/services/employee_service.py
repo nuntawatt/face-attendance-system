@@ -13,14 +13,16 @@ This makes the service trivially testable with mock objects.
 """
 from __future__ import annotations
 
+# pyrefly: ignore [missing-import]
 import structlog
 from uuid import UUID
 
+# pyrefly: ignore [missing-import]
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import EmployeeCodeConflictError, EmployeeNotFoundError
 from app.models.employee import Employee
-from app.repositories.employee_repository import EmployeeRepository
+from app.repositories.employee import EmployeeRepository
 from app.schemas.employee import EmployeeCreate, EmployeeListResponse, EmployeeResponse, EmployeeUpdate
 
 logger = structlog.get_logger(__name__)

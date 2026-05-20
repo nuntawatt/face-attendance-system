@@ -31,8 +31,8 @@ from app.core.exceptions import (
     MultipleFacesError,
 )
 from app.models.face_embedding import FaceEmbedding
-from app.repositories.employee_repository import EmployeeRepository
-from app.repositories.face_embedding_repository import FaceEmbeddingRepository
+from app.repositories.employee import EmployeeRepository
+from app.repositories.face_embedding import FaceEmbeddingRepository
 from app.schemas.face import FaceRegistrationResponse
 
 logger = structlog.get_logger(__name__)
