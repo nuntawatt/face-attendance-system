@@ -6,11 +6,12 @@ exception handler, และ lifespan context ไม่มี business logic ท
 """
 from __future__ import annotations
 
-from redis import asyncio as aioredis
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import employee
+from app.api.v1 import attendance, employee, face
+from app.api.v1 import health
+from app.websocket import ws_router
 import app.models  # noqa: F401
 from app.core.config import settings
 from app.core.exception_handlers import app_error_handler, unhandled_exception_handler
@@ -37,7 +38,7 @@ def create_app() -> FastAPI:
     app.add_middleware(RequestTracingMiddleware)
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=settings.cors_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -47,12 +48,13 @@ def create_app() -> FastAPI:
     app.add_exception_handler(Exception, unhandled_exception_handler)
 
     # API Routers
+    app.include_router(health.router)  # /health (root level)
     app.include_router(employee.router, prefix="/api/v1")
+    app.include_router(face.router, prefix="/api/v1")
+    app.include_router(attendance.router, prefix="/api/v1")
 
-    @app.on_event("startup")
-    async def _init_redis() -> None:
-        """เชื่อมต่อ Redis ตอน startup"""
-        app.state.redis = aioredis.from_url(str(settings.redis_url))
+    # WebSocket real-time attendance feed (/ws/attendance)
+    app.include_router(ws_router)
 
     return app
 

@@ -11,6 +11,7 @@ class AttendanceRecordResponse(BaseModel):
 
     id: UUID
     employee_id: UUID
+    work_date: date
     check_in_time: datetime
     check_out_time: datetime | None
     camera_id: str

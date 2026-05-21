@@ -84,9 +84,10 @@ class EmployeeService:
 
     async def list_employees(self, *, limit: int = 50, offset: int = 0) -> EmployeeListResponse:
         employees = await self._repo.get_all(limit=limit, offset=offset)
+        total = await self._repo.count()
         return EmployeeListResponse(
             items=[EmployeeResponse.model_validate(e) for e in employees],
-            total=len(employees),
+            total=total,
             limit=limit,
             offset=offset,
         )

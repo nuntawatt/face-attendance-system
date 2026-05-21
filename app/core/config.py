@@ -13,7 +13,7 @@ import json
 from functools import cached_property
 from typing import Literal
 
-from pydantic import Field, RedisDsn, PostgresDsn
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 from app.camera.stream_reader import CameraConfig
@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     app_name: str = "Face Attendance System"
     environment: Literal["development", "staging", "production"] = "production"
     log_level: str = "INFO"
+
+    # CORS อนุญาตทุก origin ใน dev, จำกัดใน production
+    cors_origins_str: str = Field("*", alias="CORS_ORIGINS")
 
     # Database Components
     postgres_host: str = Field(..., alias="POSTGRES_HOST")
@@ -69,6 +72,13 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment == "production"
+
+    @property
+    def cors_origins(self) -> list[str]:
+        """Parse CORS origins จาก comma-separated string"""
+        if self.cors_origins_str == "*":
+            return ["*"]
+        return [o.strip() for o in self.cors_origins_str.split(",") if o.strip()]
 
 
 settings = Settings()

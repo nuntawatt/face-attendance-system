@@ -1,26 +1,34 @@
-fastapi
-uvicorn[standard]
+# Web Framework
+fastapi>=0.115.0,<1.0.0
+uvicorn[standard]>=0.34.0,<1.0.0
 
-sqlalchemy
-asyncpg
-alembic
+# Database
+sqlalchemy>=2.0.0,<3.0.0
+asyncpg>=0.30.0,<1.0.0
+alembic>=1.15.0,<2.0.0
 
-pydantic
-pydantic-settings
+# Validation
+pydantic>=2.0.0,<3.0.0
+pydantic-settings>=2.0.0,<3.0.0
 
-redis
+# Cache & Message Broker
+redis>=5.0.0,<6.0.0
 
-opencv-python
-numpy
+# Computer Vision & AI
+opencv-python>=4.10.0,<5.0.0
+numpy>=1.26.0,<3.0.0
+insightface>=0.7.0,<1.0.0
+onnxruntime>=1.20.0,<2.0.0
 
-insightface
-onnxruntime
+# File Upload
+python-multipart>=0.0.18,<1.0.0
 
-python-multipart
+# Auth (สำหรับ future implementation)
+passlib[bcrypt]>=1.7.0,<2.0.0
+python-jose>=3.3.0,<4.0.0
 
-passlib[bcrypt]
-python-jose
+# Logging
+structlog>=24.0.0,<26.0.0
 
-structlog
-
-minio
+# Object Storage
+minio>=7.2.0,<8.0.0

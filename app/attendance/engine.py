@@ -5,18 +5,19 @@ Realtime attendance engine — worker หลักของ production
 ที่เริ่มใน application lifespan และรันตลอดอายุของ app
 
 สถาปัตยกรรม:
-CameraStreamReader -> frame_queue -> AttendanceEngine
-    (producer)                      (consumer)
+CameraStreamReader -> frame_queue -> AttendanceEngine -> WebSocket broadcast
+    (producer)                           (consumer)             (dashboard)
 
 Queue แยก producer ออกจาก consumer ถ้า recognition ช้า
 frame จะ back-pressure และ drop (LIFO maxsize=1 ต่อกล้อง)
 การ drop frame เป็นเจตนา — สำหรับ attendance เราต้องการ frame ล่าสุด
 ไม่ใช่คิว backlog ของ frame เก่า
 
-การกำจัดซ้ำ (Deduplication):
-Redis เก็บ key "recognized::{employee_id}::{date}" พร้อม TTL 4 ชั่วโมง
-ถ้า key มีอยู่แล้ว ข้าม DB write พนักงาน check-in แล้ว
-ป้องกัน duplicate attendance record เมื่อคนยืนอยู่หน้ากล้องหลายวินาที
+การกำจัดซ้ำ (Deduplication) แยก check-in กับ check-out:
+- Check-in dedup: Redis key "attendance:checkin:{employee_id}:{date}" TTL 4 ชั่วโมง
+  บันทึก check-in ครั้งเดียวต่อวัน ป้องกัน duplicate record
+- Check-out dedup: Redis key "attendance:checkout:{employee_id}:{date}" TTL 5 นาที
+  อนุญาตให้ update check-out ทุก 5 นาที เพื่อจับเวลาออกงานล่าสุด
 """
 from __future__ import annotations
 
@@ -31,15 +32,17 @@ from app.ai.recognition import embedding_index
 from app.camera.face_tracker import FaceTracker
 from app.camera.stream_reader import CameraConfig, stream_frames
 from app.core.config import settings
+from app.websocket.manager import attendance_manager, AttendanceEvent
 
 logger = structlog.get_logger(__name__)
 
-ATTENDANCE_DEDUP_TTL = 4 * 3600  # 4 ชั่วโมง (วินาที)
+CHECKIN_DEDUP_TTL = 4 * 3600   # 4 ชั่วโมง check-in ครั้งเดียวต่อวัน
+CHECKOUT_DEDUP_TTL = 5 * 60    # 5 นาที update check-out ได้ทุก 5 นาที
 
 
 class AttendanceEngine:
     """
-    ประสาน: อ่าน stream -> ตรวจจับใบหน้า -> จำแนก -> เขียน DB
+    ประสาน: อ่าน stream -> ตรวจจับใบหน้า -> จำแนก -> เขียน DB -> broadcast WS
     1 instance ต่อ 1 กล้อง รัน concurrent ทุกกล้องด้วย asyncio.gather
     """
 
@@ -96,30 +99,31 @@ class AttendanceEngine:
         employee_id = match.employee_id
         self._tracker.mark_recognized(track_idx, employee_id)
 
-        # ตรวจสอบ deduplication ใน Redis ก่อน เร็วมาก
-        dedup_key = self._dedup_key(employee_id)
-        if await self._redis.exists(dedup_key):
-            logger.debug("attendance_dedup_hit", employee_id=str(employee_id))
-            return
+        checkin_key = self._dedup_key("checkin", employee_id)
+        checkout_key = self._dedup_key("checkout", employee_id)
 
-        # บันทึกการเข้างาน
         async with self._session_factory() as session:
             from app.repositories.attendance import AttendanceRepository
-            repo = AttendanceRepository(session)
+            from app.repositories.employee import EmployeeRepository
             from app.models.attendance import AttendanceRecord
-            
+
+            repo = AttendanceRepository(session)
             now_time = datetime.now(timezone.utc)
             work_date = now_time.date()
-            
-            # ถ้ามี record ของวันนี้อยู่แล้ว ให้ update เป็น check_out_time ใหม่
+
             record = await repo.get_today_record(employee_id)
-            if record:
-                # Check-out logic: Update check_out_time ถ้าพนักงานยืนอยู่หน้ากล้องนานๆ
-                record.check_out_time = now_time
-                record.camera_id = self._config.camera_id
-                record.confidence_score = (record.confidence_score + match.similarity) / 2.0
-            else:
-                # Check-in logic: สร้าง record ใหม่
+
+            # ดึงข้อมูลพนักงานสำหรับ WebSocket event (แสดงชื่อบน dashboard)
+            emp_repo = EmployeeRepository(session)
+            employee = await emp_repo.get_by_id(employee_id)
+            emp_code = employee.employee_code if employee else None
+            emp_name = employee.full_name if employee else None
+
+            if record is None:
+                # สร้าง record ใหม่ (ครั้งเดียวต่อวัน)
+                if await self._redis.exists(checkin_key):
+                    return  # check-in แล้ววันนี้
+
                 record = AttendanceRecord(
                     employee_id=employee_id,
                     work_date=work_date,
@@ -128,19 +132,75 @@ class AttendanceEngine:
                     confidence_score=match.similarity,
                 )
                 await repo.create(record)
-                
-            await session.commit()
+                await session.commit()
 
-        # ตั้ง dedup key ใน Redis เพื่อป้องกันการบันทึกซ้ำในวันนี้
-        await self._redis.setex(dedup_key, ATTENDANCE_DEDUP_TTL, "1")
-        logger.info(
-            "attendance_recorded",
-            employee_id=str(employee_id),
-            camera_id=self._config.camera_id,
-            confidence=round(match.similarity, 3),
-        )
+                await self._redis.setex(checkin_key, CHECKIN_DEDUP_TTL, "1")
+                logger.info(
+                    "attendance_checkin",
+                    employee_id=str(employee_id),
+                    camera_id=self._config.camera_id,
+                    confidence=round(match.similarity, 3),
+                )
 
-    def _dedup_key(self, employee_id: UUID) -> str:
-        """สร้าง Redis key ที่ unique ต่อพนักงาน ต่อวัน"""
+                # Broadcast check-in event ไป dashboard
+                await self._broadcast_event(
+                    "check_in", employee_id, emp_code, emp_name,
+                    match.similarity, now_time,
+                )
+            else:
+                # update เวลาออกงาน (ทุก 5 นาที)
+                if await self._redis.exists(checkout_key):
+                    return  # เพิ่ง update check-out ไป ยังไม่ถึงเวลา
+
+                record.check_out_time = now_time
+                record.camera_id = self._config.camera_id
+                await session.commit()
+
+                await self._redis.setex(checkout_key, CHECKOUT_DEDUP_TTL, "1")
+                logger.info(
+                    "attendance_checkout",
+                    employee_id=str(employee_id),
+                    camera_id=self._config.camera_id,
+                    confidence=round(match.similarity, 3),
+                )
+
+                # Broadcast check-out event ไป dashboard
+                await self._broadcast_event(
+                    "check_out", employee_id, emp_code, emp_name,
+                    match.similarity, now_time,
+                )
+
+    async def _broadcast_event(
+        self,
+        event_type: str,
+        employee_id: UUID,
+        employee_code: str | None,
+        full_name: str | None,
+        confidence: float,
+        timestamp: datetime,
+    ) -> None:
+        """
+        Broadcast attendance event ไป WebSocket clients ทั้งหมด
+
+        Fire-and-forget: ถ้า broadcast ล้มเหลว ไม่ affect main pipeline
+        เพราะ attendance record ถูก commit ลง DB แล้ว
+        """
+        try:
+            event = AttendanceEvent(
+                event_type=event_type,
+                employee_id=str(employee_id),
+                employee_code=employee_code,
+                full_name=full_name,
+                camera_id=self._config.camera_id,
+                confidence=round(confidence, 3),
+                timestamp=timestamp.isoformat(),
+            )
+            await attendance_manager.broadcast(event)
+        except Exception:
+            # WebSocket broadcast ล้มเหลวไม่ควร crash camera worker
+            logger.warning("ws_broadcast_failed", employee_id=str(employee_id))
+
+    def _dedup_key(self, action: str, employee_id: UUID) -> str:
+        """สร้าง Redis key ที่ unique ต่อ action, ต่อพนักงาน, ต่อวัน"""
         today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        return f"attendance:dedup:{employee_id}:{today}"
+        return f"attendance:{action}:{employee_id}:{today}"

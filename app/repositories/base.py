@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import Generic, Sequence, Type, TypeVar
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.base import Base
@@ -64,3 +64,10 @@ class BaseRepository(Generic[ModelT]):
             select(self._model.id).where(self._model.id == entity_id)
         )
         return result.scalar_one_or_none() is not None
+
+    # นับจำนวน row ทั้งหมด สำหรับ pagination response
+    async def count(self) -> int:
+        result = await self._session.execute(
+            select(func.count()).select_from(self._model)
+        )
+        return result.scalar_one()

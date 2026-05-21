@@ -14,7 +14,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database.base import Base, TimestampMixin, UUIDMixin
 
 class Employee(UUIDMixin, TimestampMixin, Base):
-    __tablename__ = "employee"
+    __tablename__ = "employees"
 
     # รหัสพนักงาน -> unique, index เพื่อค้นหาเร็ว
     employee_code: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)

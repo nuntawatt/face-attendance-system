@@ -2,15 +2,15 @@
 Application lifespan manager
 
 ลำดับ startup สำคัญมาก:
-1. โหลด AI model (blocking — ต้องเสร็จก่อน serve request)
-2. สร้าง embedding index จาก DB ใหม่
-3. เริ่ม camera worker เป็น background task
-4. เปิด connection (Redis, DB pool) — async session factory จัดการแล้ว
+1. เชื่อมต่อ Redis
+2. โหลด AI model (blocking — ต้องเสร็จก่อน serve request)
+3. สร้าง embedding index จาก DB ใหม่
+4. เริ่ม camera worker เป็น background task
 
 ลำดับ shutdown (ย้อนกลับ):
 1. ส่งสัญญาณให้ camera worker หยุด
 2. รอ task drain
-3. คืน resource
+3. คืน resource (Redis, DB connection)
 
 ถ้ากล้องตัวหนึ่ง fail กล้องอื่นๆ ต้องทำงานต่อ
 asyncio.gather(*tasks, return_exceptions=True) ทำให้แน่ใจเรื่องนี้
@@ -22,6 +22,7 @@ from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 import structlog
+from redis import asyncio as aioredis
 from fastapi import FastAPI
 
 from app.ai.engine import face_engine
@@ -39,15 +40,19 @@ logger = structlog.get_logger(__name__)
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("กำลังเริ่มต้น application")
 
-    # 1. โหลด AI engine (blocking จงใจ)
+    # 1. เชื่อมต่อ Redis ต้องพร้อมก่อน camera worker ที่ใช้ dedup
+    app.state.redis = aioredis.from_url(str(settings.redis_url))
+    logger.info("redis_connected", url=settings.redis_host)
+
+    # 2. โหลด AI engine (blocking จงใจ)
     face_engine.load()
 
-    # 2. สร้าง embedding index ใหม่
+    # 3. สร้าง embedding index ใหม่
     async with async_session_factory() as session:
         cache_service = EmbeddingCacheService(session)
         await cache_service.rebuild_index()
 
-    # 3. เริ่ม camera worker
+    # 4. เริ่ม camera worker
     stop_event = asyncio.Event()
     camera_tasks: list[asyncio.Task] = []
 
@@ -74,4 +79,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if camera_tasks:
         await asyncio.gather(*camera_tasks, return_exceptions=True)
 
+    # คืน resource ปิด Redis connection ป้องกัน connection leak
+    await app.state.redis.close()
     logger.info("application ปิดแล้ว")
+
