@@ -2,7 +2,7 @@
 Request tracing middleware
 
 Request ทุกรายการที่เข้ามาจะได้รับ trace_id ที่ inject เข้าไปใน structlog contextvars
-หมายความว่า log ทุกบรรทัดที่ emit ระหว่าง request นั้น — ในทุก layer —
+หมายความว่า log ทุกบรรทัดที่ emit ระหว่าง request นั้นในทุก layer
 จะมี trace_id โดยอัตโนมัติโดยไม่ต้องส่งต่อ parameter
 
 ใน Kibana หรือ Datadog: filter ด้วย trace_id เดียว เห็นทุก log ตั้งแต่

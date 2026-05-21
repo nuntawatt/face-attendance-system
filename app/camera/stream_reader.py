@@ -99,7 +99,7 @@ async def stream_frames(
 
 
 def _open_capture(rtsp_url: str, resolution: tuple[int, int]) -> cv2.VideoCapture | None:
-    """เรียกใน thread pool — OpenCV blocking operation ปลอดภัยที่นี่"""
+    """เรียกใน thread pool OpenCV blocking operation ปลอดภัยที่นี่"""
     cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # ดึง frame ล่าสุดเสมอ
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])

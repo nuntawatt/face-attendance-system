@@ -3,7 +3,7 @@ Application lifespan manager
 
 ลำดับ startup สำคัญมาก:
 1. เชื่อมต่อ Redis
-2. โหลด AI model (blocking — ต้องเสร็จก่อน serve request)
+2. โหลด AI model (blocking ต้องเสร็จก่อน serve request)
 3. สร้าง embedding index จาก DB ใหม่
 4. เริ่ม camera worker เป็น background task
 
@@ -82,4 +82,3 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # คืน resource ปิด Redis connection ป้องกัน connection leak
     await app.state.redis.close()
     logger.info("application ปิดแล้ว")
-

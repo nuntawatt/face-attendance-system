@@ -25,7 +25,7 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-# ค่า threshold cosine similarity — ปรับตาม environment จริง
+# ค่า threshold cosine similarity ปรับตาม environment จริง
 # ยิ่งสูงยิ่งเข้มงวด ลด false positive แต่อาจ miss พนักงานที่เหนื่อยหรือสวมแมสก์
 RECOGNITION_THRESHOLD = 0.45
 

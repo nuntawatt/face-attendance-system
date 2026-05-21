@@ -2,7 +2,7 @@
 Generic async repository สำหรับ CRUD operations พื้นฐาน
 
 Domain repository ทั้งหมดสืบทอดมาจากนี้ รูปแบบ Generic[T] ทำให้
-มี type safety ในทุก implementation — ORM model type จะไหลผ่านไปถึง
+มี type safety ในทุก implementation ORM model type จะไหลผ่านไปถึง
 IDE completion และ static analysis ได้อัตโนมัติ
 """
 from __future__ import annotations
@@ -49,7 +49,7 @@ class BaseRepository(Generic[ModelT]):
     # สร้าง instance ใหม่ใน database และ return instance ที่มี id และข้อมูลล่าสุดจาก database
     async def create(self, instance: ModelT) -> ModelT:
         self._session.add(instance)
-        await self._session.flush()  # flush ไม่ใช่ commit — ผู้เรียกเป็นคนควบคุม transaction
+        await self._session.flush()  # flush ไม่ใช่ commit ผู้เรียกเป็นคนควบคุม transaction
         await self._session.refresh(instance) # refresh เพื่อดึงข้อมูลล่าสุดจาก database (เช่น id ที่ถูก auto-generated)
         return instance
 

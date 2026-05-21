@@ -2,7 +2,7 @@
 Global FastAPI exception handlers
 
 นี่คือ **ที่เดียว** ที่แปลง domain exception เป็น HTTP response
-Router ไม่ catch exception เลย — ปล่อยให้ bubble ขึ้นมาถึงที่นี่
+Router ไม่ catch exception เลยปล่อยให้ bubble ขึ้นมาถึงที่นี่
 """
 from __future__ import annotations
 

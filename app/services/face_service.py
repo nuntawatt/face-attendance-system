@@ -91,11 +91,7 @@ class FaceRegistrationService:
         await self._employee_repo.set_face_registered(employee_id, registered=True)
         await self._session.commit()
 
-        logger.info(
-            "face_registered",
-            employee_id=str(employee_id),
-            quality=face.quality_score,
-        )
+        logger.info("face_registered", employee_id=str(employee_id), quality=face.quality_score)
 
         return FaceRegistrationResponse(
             employee_id=employee_id,

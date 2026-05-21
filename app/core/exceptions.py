@@ -3,8 +3,7 @@ Domain exception hierarchy
 
 ใช้ typed exception แทน ValueError/RuntimeError ทั่วไป เพื่อให้
 global handler map exception ไปยัง HTTP status code แบบ declarative
-ห้าม raise HTTPException จาก service หรือ repository layer เด็ดขาด
-— layer เหล่านั้นไม่รู้ว่าตัวเองถูกเรียกจาก HTTP
+ห้าม raise HTTPException จาก service หรือ repository layer เด็ดขาด layer เหล่านั้นไม่รู้ว่าตัวเองถูกเรียกจาก HTTP
 """
 from __future__ import annotations
 

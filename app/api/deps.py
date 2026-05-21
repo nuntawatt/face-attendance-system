@@ -30,13 +30,9 @@ async def get_db_session() -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
-async def get_employee_service(
-    session: AsyncSession = Depends(get_db_session),
-) -> EmployeeService:
+async def get_employee_service(session: AsyncSession = Depends(get_db_session)) -> EmployeeService:
     return EmployeeService(session)
 
 
-async def get_face_service(
-    session: AsyncSession = Depends(get_db_session),
-) -> FaceRegistrationService:
+async def get_face_service(session: AsyncSession = Depends(get_db_session)) -> FaceRegistrationService:
     return FaceRegistrationService(session)

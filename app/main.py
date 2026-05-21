@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import attendance, employee, face
 from app.api.v1 import health
 from app.websocket import ws_router
-import app.models  # noqa: F401
+# import app.models  # noqa: F401
 from app.core.config import settings
 from app.core.exception_handlers import app_error_handler, unhandled_exception_handler
 from app.core.exceptions import AppError
