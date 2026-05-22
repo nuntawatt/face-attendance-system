@@ -36,8 +36,8 @@ from app.websocket.manager import attendance_manager, AttendanceEvent
 
 logger = structlog.get_logger(__name__)
 
-CHECKIN_DEDUP_TTL = 4 * 3600   # 4 ชั่วโมง check-in ครั้งเดียวต่อวัน
-CHECKOUT_DEDUP_TTL = 5 * 60    # 5 นาที update check-out ได้ทุก 5 นาที
+CHECKIN_DEDUP_TTL = 10   # ทดสอบ: 10 วินาที (จากเดิม 4 ชั่วโมง)
+CHECKOUT_DEDUP_TTL = 10    # ทดสอบ: 10 วินาที (จากเดิม 5 นาที)
 
 
 class AttendanceEngine:

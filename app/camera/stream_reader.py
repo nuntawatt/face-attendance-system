@@ -100,8 +100,13 @@ async def stream_frames(
 
 def _open_capture(rtsp_url: str, resolution: tuple[int, int]) -> cv2.VideoCapture | None:
     """เรียกใน thread pool OpenCV blocking operation ปลอดภัยที่นี่"""
-    cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
-    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1) # ดึง frame ล่าสุดเสมอ
+    # ถ้าค่าเป็นตัวเลข (เช่น "0") ให้ใช้ Webcam บนเครื่องแทน RTSP
+    if rtsp_url.isdigit():
+        cap = cv2.VideoCapture(int(rtsp_url))
+    else:
+        cap = cv2.VideoCapture(rtsp_url, cv2.CAP_FFMPEG)
+
+    cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # ดึง frame ล่าสุดเสมอ
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, resolution[0])
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, resolution[1])
     return cap
