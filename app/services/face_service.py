@@ -37,8 +37,10 @@ from app.schemas.face import FaceRegistrationResponse
 
 logger = structlog.get_logger(__name__)
 
-MIN_QUALITY_THRESHOLD = 0.4  # คะแนนคุณภาพขั้นต่ำสำหรับลงทะเบียน
-MODEL_VERSION = "buffalo_s_v1" # เวอร์ชันโมเดลที่ใช้สำหรับ embedding นี้ เก็บไว้เพื่อ compatibility ในอนาคต
+# คะแนนคุณภาพขั้นต่ำสำหรับลงทะเบียน
+MIN_QUALITY_THRESHOLD = 0.4
+# เวอร์ชันโมเดลที่ใช้สำหรับ embedding นี้ เก็บไว้เพื่อ compatibility ในอนาคต
+MODEL_VERSION = "buffalo_s_v1"
 
 
 class FaceRegistrationService:
@@ -67,13 +69,17 @@ class FaceRegistrationService:
         # รัน face detection
         faces = await face_engine.analyze_frame(frame)
 
+        # ตรวจสอบว่าพบใบหน้าพอดี 1 ใบหน้า
         if len(faces) == 0:
             raise FaceNotDetectedError()
+        # ถ้าพบมากกว่า 1 ใบหน้า
         if len(faces) > 1:
             raise MultipleFacesError()
 
+        # เลือกใบหน้าที่พบ
         face = faces[0]
 
+        # ตรวจสอบคุณภาพ
         if face.quality_score < MIN_QUALITY_THRESHOLD:
             raise ImageQualityError(face.quality_score, MIN_QUALITY_THRESHOLD)
 
@@ -91,8 +97,15 @@ class FaceRegistrationService:
         await self._employee_repo.set_face_registered(employee_id, registered=True)
         await self._session.commit()
 
+        # Rebuild in-memory index ทันทีหลัง commit
+        # ถ้าไม่ rebuild, AI pipeline จะจำพนักงานคนนี้ไม่ได้จนกว่า server restart
+        from app.services.embedding_cache_service import EmbeddingCacheService
+        cache_service = EmbeddingCacheService(self._session)
+        await cache_service.rebuild_index()
+
         logger.info("face_registered", employee_id=str(employee_id), quality=face.quality_score)
 
+        # ตอบกลับ Client
         return FaceRegistrationResponse(
             employee_id=employee_id,
             success=True,
@@ -102,6 +115,7 @@ class FaceRegistrationService:
         )
 
     @staticmethod
+    # แปลง image bytes เป็น numpy array
     def _decode_image(image_bytes: bytes) -> np.ndarray:
         nparr = np.frombuffer(image_bytes, np.uint8)
         frame = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
