@@ -22,7 +22,7 @@ import numpy as np
 @dataclass
 class TrackedFace:
     bbox: tuple[int, int, int, int]
-    employee_id: UUID | None  # None = ตรวจพบแต่ยังไม่ได้จำแนก
+    employee_id: UUID | None = None  # None = ตรวจพบแต่ยังไม่ได้จำแนก
     last_seen: float = field(default_factory=time.monotonic)
     recognized: bool = False
 

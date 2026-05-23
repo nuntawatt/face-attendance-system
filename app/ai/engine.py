@@ -16,6 +16,7 @@ Thread-safety: ONNX Runtime session ปลอดภัยสำหรับ infe
 from __future__ import annotations
 
 import asyncio
+from typing import TYPE_CHECKING
 from pathlib import Path
 from typing import NamedTuple
 
@@ -112,5 +113,10 @@ class FaceEngine:
         return min(float(variance) / 200.0, 1.0)  # normalize เป็น [0, 1]
 
 
-# Singleton ระดับ application initialize ใน lifespan
-face_engine = FaceEngine()
+# Singleton ระดับ application ใช้ค่าจาก config
+from app.core.config import settings
+face_engine = FaceEngine(
+    model_pack=settings.face_model_pack,
+    det_size=(settings.face_det_size, settings.face_det_size),
+    det_thresh=settings.face_det_threshold,
+)

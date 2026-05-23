@@ -36,8 +36,12 @@ from app.websocket.manager import attendance_manager, AttendanceEvent
 
 logger = structlog.get_logger(__name__)
 
-CHECKIN_DEDUP_TTL = 10   # ทดสอบ: 10 วินาที (จากเดิม 4 ชั่วโมง)
-CHECKOUT_DEDUP_TTL = 10    # ทดสอบ: 10 วินาที (จากเดิม 5 นาที)
+CHECKIN_DEDUP_TTL = 4 * 3600   # 4 ชั่วโมง check-in ครั้งเดียวต่อวัน
+CHECKOUT_DEDUP_TTL = 5 * 60    # 5 นาที update check-out ได้ทุก 5 นาที
+
+# Quality gates สำหรับ real-time stream
+MIN_DET_SCORE = 0.6            # กรอง detection ที่ไม่ชัดออก (หน้าเบลอ, ไกลเกิน)
+MIN_QUALITY_SCORE = 0.3        # กรองภาพที่มืด/เบลอมากเกินไป
 
 
 class AttendanceEngine:
@@ -64,16 +68,25 @@ class AttendanceEngine:
         logger.info("attendance_engine_stop", camera_id=self._config.camera_id)
 
     async def _process_frame(self, frame) -> None:
-        """ประมวลผล 1 frame: ตรวจจับ -> track -> จำแนกเฉพาะใบหน้าใหม่"""
+        """ประมวลผล 1 frame: ตรวจจับ -> กรองคุณภาพ -> track -> จำแนกเฉพาะใบหน้าใหม่"""
         faces = await face_engine.analyze_frame(frame)
         if not faces:
             return
 
-        bboxes = [f.bbox for f in faces]
+        # Quality gate: กรองใบหน้าที่ detection score ต่ำหรือภาพเบลอออก
+        # ช่วยลด false positive จากภาพสะท้อน, โปสเตอร์, หรือหน้าจอมือถือ
+        good_faces = [
+            f for f in faces
+            if f.det_score >= MIN_DET_SCORE and f.quality_score >= MIN_QUALITY_SCORE
+        ]
+        if not good_faces:
+            return
+
+        bboxes = [f.bbox for f in good_faces]
         track_indices = self._tracker.update(bboxes)
 
         recognition_tasks = []
-        for i, (face, track_idx) in enumerate(zip(faces, track_indices)):
+        for i, (face, track_idx) in enumerate(zip(good_faces, track_indices)):
             if self._tracker.is_recognized(track_idx):
                 continue  # จำแนกแล้วในการเข้างานนี้ - ข้าม
             recognition_tasks.append(

@@ -40,7 +40,8 @@ logger = structlog.get_logger(__name__)
 # คะแนนคุณภาพขั้นต่ำสำหรับลงทะเบียน
 MIN_QUALITY_THRESHOLD = 0.4
 # เวอร์ชันโมเดลที่ใช้สำหรับ embedding นี้ เก็บไว้เพื่อ compatibility ในอนาคต
-MODEL_VERSION = "buffalo_s_v1"
+from app.core.config import settings
+MODEL_VERSION = f"{settings.face_model_pack}_v1"
 
 
 class FaceRegistrationService:

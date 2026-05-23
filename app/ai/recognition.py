@@ -25,9 +25,9 @@ import structlog
 
 logger = structlog.get_logger(__name__)
 
-# ค่า threshold cosine similarity ปรับตาม environment จริง
-# ยิ่งสูงยิ่งเข้มงวด ลด false positive แต่อาจ miss พนักงานที่เหนื่อยหรือสวมแมสก์
-RECOGNITION_THRESHOLD = 0.45
+# ค่า threshold cosine similarity อ่านจาก config เพื่อปรับได้ผ่าน .env
+from app.core.config import settings
+RECOGNITION_THRESHOLD = settings.face_recognition_threshold
 
 
 class RecognitionMatch(NamedTuple):
