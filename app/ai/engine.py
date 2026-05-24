@@ -115,6 +115,30 @@ class FaceEngine:
         return min(float(variance) / 200.0, 1.0)  # normalize เป็น [0, 1]
 
 
+def crop_and_encode_face(
+    frame: np.ndarray, bbox: tuple[int, int, int, int], quality: int = 95
+) -> bytes:
+    """
+    Crops a face from a BGR frame based on bounding box coordinates,
+    guards against out-of-bound edge cases, and encodes it into JPEG bytes.
+    """
+    x1, y1, x2, y2 = bbox
+    h, w = frame.shape[:2]
+
+    # Safe boundary coordinate clipping
+    x1 = max(0, int(x1))
+    y1 = max(0, int(y1))
+    x2 = min(w, int(x2))
+    y2 = min(h, int(y2))
+
+    face_crop = frame[y1:y2, x1:x2]
+    if face_crop.size == 0:
+        raise ValueError("Invalid bounding box size resulted in an empty face crop.")
+
+    _, buffer = cv2.imencode(".jpg", face_crop, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
+    return buffer.tobytes()
+
+
 # Singleton ระดับ application ใช้ค่าจาก config
 from app.core.config import settings
 

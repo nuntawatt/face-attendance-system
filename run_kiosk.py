@@ -264,24 +264,14 @@ async def register_face_flow(frame, face_engine, session_factory):
             session.add(emp)
             await session.flush()
 
-        # Crop ใบหน้า
-        x1, y1, x2, y2 = face.bbox
-        h, w = frame.shape[:2]
-        x1 = max(0, int(x1))
-        y1 = max(0, int(y1))
-        x2 = min(w, int(x2))
-        y2 = min(h, int(y2))
-        face_crop = frame[y1:y2, x1:x2]
+        # Crop และแปลงเป็น jpeg bytes ด้วยฟังก์ชันส่วนกลาง
+        from app.ai.engine import crop_and_encode_face
 
-        # แปลงเป็น jpeg bytes
-        _, buffer = cv2.imencode(".jpg", face_crop)
-        crop_bytes = buffer.tobytes()
+        crop_bytes = crop_and_encode_face(frame, face.bbox)
 
-        # อัพโหลดขึ้น MinIO ด้วย UUID filename
+        # อัพโหลดขึ้น MinIO ด้วย UUID filename แบบ async แท้
         image_filename = f"{uuid.uuid4()}.jpg"
-        image_url = await asyncio.to_thread(
-            minio_service.upload_image, crop_bytes, image_filename
-        )
+        image_url = await minio_service.upload_image_async(crop_bytes, image_filename)
 
         # Upsert embedding
         emb_repo = FaceEmbeddingRepository(session)

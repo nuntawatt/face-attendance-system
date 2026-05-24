@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import io
 import json
+import asyncio
 import structlog
 from minio import Minio
 from minio.error import S3Error
@@ -85,6 +86,10 @@ class MinioService:
         except S3Error as e:
             logger.error("minio_image_upload_failed", filename=filename, error=str(e))
             raise e
+
+    async def upload_image_async(self, image_bytes: bytes, filename: str) -> str:
+        """อัปโหลดรูปภาพขึ้น MinIO แบบ Non-blocking (รันใน thread pool)"""
+        return await asyncio.to_thread(self.upload_image, image_bytes, filename)
 
 
 # Global singleton instance
