@@ -14,6 +14,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database.base import Base
+from app.core.timezone import get_local_now
 
 # Generic type ของ ORM model
 # bound=Base หมายถึง ModelT ต้องสืบทอดจาก Base เท่านั้น
@@ -34,16 +35,18 @@ class BaseRepository(Generic[ModelT]):
 
     # CRUD operations
     async def get_by_id(self, entity_id: UUID) -> ModelT | None:
-        result = await self._session.execute(
-            select(self._model).where(self._model.id == entity_id)
-        )
+        stmt = select(self._model).where(self._model.id == entity_id)
+        if hasattr(self._model, "deleted_at"):
+            stmt = stmt.where(self._model.deleted_at.is_(None))
+        result = await self._session.execute(stmt)
         return result.scalar_one_or_none()
 
     # get_all รองรับ pagination ด้วย limit และ offset
     async def get_all(self, *, limit: int = 100, offset: int = 0) -> Sequence[ModelT]:
-        result = await self._session.execute(
-            select(self._model).limit(limit).offset(offset)
-        )
+        stmt = select(self._model).limit(limit).offset(offset)
+        if hasattr(self._model, "deleted_at"):
+            stmt = stmt.where(self._model.deleted_at.is_(None))
+        result = await self._session.execute(stmt)
         return result.scalars().all()
 
     # สร้าง instance ใหม่ใน database และ return instance ที่มี id และข้อมูลล่าสุดจาก database
@@ -55,19 +58,25 @@ class BaseRepository(Generic[ModelT]):
 
     # update จะรับ instance ที่มี id อยู่แล้ว และจะ update ข้อมูลใน database ตาม instance นั้น
     async def delete(self, instance: ModelT) -> None:
-        await self._session.delete(instance)
-        await self._session.flush()
+        if hasattr(instance, "deleted_at"):
+            instance.deleted_at = get_local_now()
+            await self._session.flush()
+        else:
+            await self._session.delete(instance)
+            await self._session.flush()
 
     # ตรวจสอบว่ามี entity ที่มี id นี้อยู่ใน database หรือไม่
     async def exists(self, entity_id: UUID) -> bool:
-        result = await self._session.execute(
-            select(self._model.id).where(self._model.id == entity_id)
-        )
+        stmt = select(self._model.id).where(self._model.id == entity_id)
+        if hasattr(self._model, "deleted_at"):
+            stmt = stmt.where(self._model.deleted_at.is_(None))
+        result = await self._session.execute(stmt)
         return result.scalar_one_or_none() is not None
 
     # นับจำนวน row ทั้งหมด สำหรับ pagination response
     async def count(self) -> int:
-        result = await self._session.execute(
-            select(func.count()).select_from(self._model)
-        )
+        stmt = select(func.count()).select_from(self._model)
+        if hasattr(self._model, "deleted_at"):
+            stmt = stmt.where(self._model.deleted_at.is_(None))
+        result = await self._session.execute(stmt)
         return result.scalar_one()

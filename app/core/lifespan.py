@@ -32,6 +32,7 @@ from app.camera.stream_reader import CameraConfig
 from app.core.config import settings
 from app.database.session import async_session_factory
 from app.services.embedding_cache_service import EmbeddingCacheService
+from app.services.minio_service import minio_service
 
 logger = structlog.get_logger(__name__)
 
@@ -43,6 +44,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 1. เชื่อมต่อ Redis ต้องพร้อมก่อน camera worker ที่ใช้ dedup
     app.state.redis = aioredis.from_url(str(settings.redis_url))
     logger.info("redis_connected", url=settings.redis_host)
+
+    # 1.5. เริ่มต้นระบบ MinIO Object Storage
+    logger.info("กำลังตรวจสอบ MinIO bucket")
+    await asyncio.to_thread(minio_service.ensure_bucket_exists)
 
     # 2. โหลด AI engine (blocking จงใจ)
     face_engine.load()

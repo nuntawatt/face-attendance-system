@@ -14,11 +14,11 @@ from sqlalchemy import ForeignKey, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, TimestampMixin, UUIDMixin
+from app.database.base import Base, TimestampMixin, UUIDMixin, SoftDeleteMixin
 from app.models.employee import Employee
 
 
-class FaceEmbedding(UUIDMixin, TimestampMixin, Base):
+class FaceEmbedding(UUIDMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "face_embeddings"
 
     # 1 พนักงาน = 1 embedding เสมอ (unique constraint)
@@ -35,5 +35,6 @@ class FaceEmbedding(UUIDMixin, TimestampMixin, Base):
     # เวอร์ชันโมเดลที่ใช้สร้าง embedding นี้ สำหรับ migration เมื่อเปลี่ยนโมเดล
     model_version: Mapped[str] = mapped_column(String(50), nullable=False)
     image_quality_score: Mapped[float | None] = mapped_column(nullable=True)
+    image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="face_embedding")  # noqa: F821

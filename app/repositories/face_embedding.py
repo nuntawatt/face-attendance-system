@@ -13,11 +13,12 @@ from __future__ import annotations
 
 from uuid import UUID
 
-from sqlalchemy import delete, select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.face_embedding import FaceEmbedding
 from app.repositories.base import BaseRepository
+from app.core.timezone import get_local_now
 
 
 class FaceEmbeddingRepository(BaseRepository[FaceEmbedding]):
@@ -28,7 +29,10 @@ class FaceEmbeddingRepository(BaseRepository[FaceEmbedding]):
     async def get_by_employee_id(self, employee_id: UUID) -> FaceEmbedding | None:
         """ดึง embedding ของพนักงานคนนั้น (1 คน = 1 embedding)"""
         result = await self._session.execute(
-            select(FaceEmbedding).where(FaceEmbedding.employee_id == employee_id)
+            select(FaceEmbedding).where(
+                FaceEmbedding.employee_id == employee_id,
+                FaceEmbedding.deleted_at.is_(None)
+            )
         )
         return result.scalar_one_or_none()
 
@@ -40,7 +44,10 @@ class FaceEmbeddingRepository(BaseRepository[FaceEmbedding]):
         result = await self._session.execute(
             select(FaceEmbedding)
             .join(FaceEmbedding.employee)
-            .where(FaceEmbedding.employee.has(is_active=True))
+            .where(
+                FaceEmbedding.employee.has(is_active=True, deleted_at=None),
+                FaceEmbedding.deleted_at.is_(None)
+            )
         )
         return list(result.scalars().all())
 
@@ -56,8 +63,10 @@ class FaceEmbeddingRepository(BaseRepository[FaceEmbedding]):
         return await self.create(embedding)
 
     async def delete_by_employee_id(self, employee_id: UUID) -> None:
-        """ลบ embedding เมื่อพนักงานออกจากระบบ"""
+        """ลบ embedding เมื่อพนักงานออกจากระบบ (soft delete)"""
         await self._session.execute(
-            delete(FaceEmbedding).where(FaceEmbedding.employee_id == employee_id)
+            update(FaceEmbedding)
+            .where(FaceEmbedding.employee_id == employee_id)
+            .values(deleted_at=get_local_now())
         )
         await self._session.flush()

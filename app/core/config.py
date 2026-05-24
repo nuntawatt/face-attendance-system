@@ -54,6 +54,14 @@ class Settings(BaseSettings):
         """Construct the Redis connection string."""
         return f"redis://{self.redis_host}:{self.redis_port}/0"
 
+    # MinIO Components
+    minio_endpoint: str = Field("localhost:9000", alias="MINIO_ENDPOINT")
+    minio_access_key: str = Field("moragon", alias="MINIO_ACCESS_KEY")
+    minio_secret_key: str = Field("moragon1234", alias="MINIO_SECRET_KEY")
+    minio_bucket_name: str = Field("images", alias="MINIO_BUCKET_NAME")
+    minio_secure: bool = Field(False, alias="MINIO_SECURE")
+    minio_external_endpoint: str = Field("http://localhost:9000", alias="MINIO_EXTERNAL_ENDPOINT")
+
     # AI
     face_model_pack: str = "buffalo_s"
     face_det_size: int = 320

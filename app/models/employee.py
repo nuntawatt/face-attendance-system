@@ -11,9 +11,9 @@ import uuid
 from sqlalchemy import Boolean, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, TimestampMixin, UUIDMixin
+from app.database.base import Base, TimestampMixin, UUIDMixin, SoftDeleteMixin
 
-class Employee(UUIDMixin, TimestampMixin, Base):
+class Employee(UUIDMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "employees"
 
     # รหัสพนักงาน -> unique, index เพื่อค้นหาเร็ว

@@ -10,6 +10,8 @@ from __future__ import annotations
 from datetime import date, datetime
 from uuid import UUID
 
+from app.core.timezone import get_local_today
+
 from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -25,12 +27,13 @@ class AttendanceRepository(BaseRepository[AttendanceRecord]):
 
     async def get_today_record(self, employee_id: UUID) -> AttendanceRecord | None:
         """ดึง record การเข้างานของวันนี้ สำหรับตรวจสอบก่อนบันทึกซ้ำ"""
-        today = date.today()
+        today = get_local_today()
         result = await self._session.execute(
             select(AttendanceRecord).where(
                 and_(
                     AttendanceRecord.employee_id == employee_id,
                     AttendanceRecord.work_date == today,
+                    AttendanceRecord.deleted_at.is_(None),
                 )
             )
         )
@@ -49,6 +52,7 @@ class AttendanceRepository(BaseRepository[AttendanceRecord]):
                     AttendanceRecord.employee_id == employee_id,
                     AttendanceRecord.work_date >= start_date,
                     AttendanceRecord.work_date <= end_date,
+                    AttendanceRecord.deleted_at.is_(None),
                 )
             ).order_by(AttendanceRecord.work_date.desc(), AttendanceRecord.check_in_time.desc())
         )

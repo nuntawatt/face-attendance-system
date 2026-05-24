@@ -26,7 +26,7 @@ class EmployeeRepository(BaseRepository[Employee]):
     async def get_by_employee_code(self, code: str) -> Employee | None:
         """ค้นหาพนักงานด้วยรหัสพนักงาน"""
         result = await self._session.execute(
-            select(Employee).where(Employee.employee_code == code)
+            select(Employee).where(Employee.employee_code == code, Employee.deleted_at.is_(None))
         )
         return result.scalar_one_or_none()
 
@@ -36,7 +36,7 @@ class EmployeeRepository(BaseRepository[Employee]):
     ) -> Sequence[Employee]:
         result = await self._session.execute(
             select(Employee)
-            .where(Employee.department == department)
+            .where(Employee.department == department, Employee.deleted_at.is_(None))
             .limit(limit)
             .offset(offset)
         )
@@ -45,7 +45,7 @@ class EmployeeRepository(BaseRepository[Employee]):
     # get_active_employees จะ return list ของ Employee ที่มี is_active = True
     async def get_active_employees(self) -> Sequence[Employee]:
         result = await self._session.execute(
-            select(Employee).where(Employee.is_active == True)  # noqa: E712
+            select(Employee).where(Employee.is_active == True, Employee.deleted_at.is_(None))  # noqa: E712
         )
         return result.scalars().all()
 
@@ -61,6 +61,6 @@ class EmployeeRepository(BaseRepository[Employee]):
     # employee_code_exists จะตรวจสอบว่ามี Employee ที่มี employee_code นี้อยู่ใน database หรือไม่
     async def employee_code_exists(self, code: str) -> bool:
         result = await self._session.execute(
-            select(Employee.id).where(Employee.employee_code == code)
+            select(Employee.id).where(Employee.employee_code == code, Employee.deleted_at.is_(None))
         )
         return result.scalar_one_or_none() is not None

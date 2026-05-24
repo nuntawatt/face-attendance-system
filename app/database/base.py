@@ -44,3 +44,13 @@ class UUIDMixin:
         default=uuid.uuid4,
         nullable=False,
     )
+
+
+class SoftDeleteMixin:
+    """เพิ่ม deleted_at สำหรับ Soft Delete"""
+
+    deleted_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        nullable=True,
+        default=None,
+    )

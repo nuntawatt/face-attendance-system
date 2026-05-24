@@ -25,6 +25,8 @@ import asyncio
 from datetime import datetime, timezone
 from uuid import UUID
 
+from app.core.timezone import get_local_now
+
 import structlog
 
 from app.ai.engine import face_engine
@@ -88,18 +90,18 @@ class AttendanceEngine:
         recognition_tasks = []
         for i, (face, track_idx) in enumerate(zip(good_faces, track_indices)):
             if self._tracker.is_recognized(track_idx):
-                continue  # จำแนกแล้วในการเข้างานนี้ - ข้าม
+                continue  # จำแนกแล้วในการเข้างานนี้ ไม่ต้องจำแนกซ้ำ
             recognition_tasks.append(
-                self._recognize_and_record(face.embedding, track_idx)
+                self._recognize_and_record(face, track_idx, frame)
             )
 
         # รันทุก recognition พร้อมกันไม่รอทีละคน
         if recognition_tasks: 
             await asyncio.gather(*recognition_tasks, return_exceptions=True)
 
-    async def _recognize_and_record(self, embedding, track_idx: int) -> None:
+    async def _recognize_and_record(self, face, track_idx: int, frame) -> None:
         """จำแนกใบหน้า 1 ใบ และบันทึกการเข้างานถ้าจำแนกได้"""
-        match = await embedding_index.find_match(embedding)
+        match = await embedding_index.find_match(face.embedding)
         if match is None or not match.is_confident:
             return  # ไม่แน่ใจพอ ไม่บันทึก
 
@@ -115,7 +117,7 @@ class AttendanceEngine:
             from app.models.attendance import AttendanceRecord
 
             repo = AttendanceRepository(session)
-            now_time = datetime.now(timezone.utc)
+            now_time = get_local_now()
             work_date = now_time.date()
 
             record = await repo.get_today_record(employee_id)
@@ -131,12 +133,16 @@ class AttendanceEngine:
                 if await self._redis.exists(checkin_key):
                     return  # check-in แล้ววันนี้
 
+                # Crop และ upload
+                image_url = await self._crop_and_upload_face(face, frame)
+
                 record = AttendanceRecord(
                     employee_id=employee_id,
                     work_date=work_date,
                     check_in_time=now_time,
                     camera_id=self._config.camera_id,
                     confidence_score=match.similarity,
+                    image_url=image_url,
                 )
                 await repo.create(record)
                 await session.commit()
@@ -159,8 +165,12 @@ class AttendanceEngine:
                 if await self._redis.exists(checkout_key):
                     return  # เพิ่ง update check-out ไป ยังไม่ถึงเวลา
 
+                # Crop และ upload
+                image_url = await self._crop_and_upload_face(face, frame)
+
                 record.check_out_time = now_time
                 record.camera_id = self._config.camera_id
+                record.image_url = image_url
                 await session.commit()
 
                 await self._redis.setex(checkout_key, CHECKOUT_DEDUP_TTL, "1")
@@ -209,5 +219,28 @@ class AttendanceEngine:
 
     def _dedup_key(self, action: str, employee_id: UUID) -> str:
         """สร้าง Redis key ที่ unique ต่อ action, ต่อพนักงาน, ต่อวัน"""
-        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        today = get_local_now().strftime("%Y-%m-%d")
         return f"attendance:{action}:{employee_id}:{today}"
+
+    async def _crop_and_upload_face(self, face, frame) -> str:
+        """Helper ในการ crop ใบหน้าและ upload ขึ้น MinIO"""
+        import cv2
+        import uuid
+        from app.services.minio_service import minio_service
+
+        x1, y1, x2, y2 = face.bbox
+        h, w = frame.shape[:2]
+        x1 = max(0, int(x1))
+        y1 = max(0, int(y1))
+        x2 = min(w, int(x2))
+        y2 = min(h, int(y2))
+        face_crop = frame[y1:y2, x1:x2]
+
+        _, buffer = cv2.imencode(".jpg", face_crop)
+        crop_bytes = buffer.tobytes()
+
+        image_filename = f"{uuid.uuid4()}.jpg"
+        image_url = await asyncio.to_thread(
+            minio_service.upload_image, crop_bytes, image_filename
+        )
+        return image_url

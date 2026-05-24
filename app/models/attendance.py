@@ -14,11 +14,11 @@ from sqlalchemy import Date, DateTime, Float, ForeignKey, String, UniqueConstrai
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.base import Base, TimestampMixin, UUIDMixin
+from app.database.base import Base, TimestampMixin, UUIDMixin, SoftDeleteMixin
 from app.models.employee import Employee
 
 
-class AttendanceRecord(UUIDMixin, TimestampMixin, Base):
+class AttendanceRecord(UUIDMixin, TimestampMixin, SoftDeleteMixin, Base):
     __tablename__ = "attendance_records"
     __table_args__ = (
         UniqueConstraint("employee_id", "work_date", name="uq_attendance_employee_date"),
@@ -38,5 +38,6 @@ class AttendanceRecord(UUIDMixin, TimestampMixin, Base):
 
     # สถานะ: present=มาตรงเวลา, late=มาสาย, early_leave=กลับก่อนเวลา
     status: Mapped[str] = mapped_column(String(20), default="present", nullable=False)
+    image_url: Mapped[str | None] = mapped_column(String(512), nullable=True)
 
     employee: Mapped["Employee"] = relationship("Employee", back_populates="attendance_records")  # noqa: F821
