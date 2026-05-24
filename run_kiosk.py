@@ -31,6 +31,7 @@ COLOR_CYAN = (230, 200, 0)
 # Threshold ต่ำสำหรับ demo (ให้แสดง bbox ได้ง่าย)
 MIN_DET_SCORE = 0.35
 RECOGNITION_COOLDOWN = 5.0
+CHECKOUT_WAIT_SECONDS = 10 * 60  # รอ 10 นาทีก่อนเช็คเอาท์ได้
 
 
 def draw_label(img, text, pos, font_scale=0.6, color=COLOR_WHITE, thickness=1):
@@ -271,7 +272,8 @@ async def main():
 
     # State
     recent_events: list[dict] = []
-    last_recognition: dict[str, float] = {}
+    # เก็บสถานะการเช็คอิน {emp_id: {"check_in_time": 1234.5, "status": "checked_in"}}
+    employee_status: dict[str, dict] = {}
     fps = 0.0
     frame_count = 0
     fps_timer = time.monotonic()
@@ -325,32 +327,47 @@ async def main():
                         confidence = match.similarity
                         now = time.monotonic()
 
-                        if emp_id not in last_recognition or (now - last_recognition[emp_id]) > RECOGNITION_COOLDOWN:
-                            last_recognition[emp_id] = now
-                            event_type = "check_in"
-                            status = "checked_in"
-
-                            for evt in recent_events:
-                                if evt.get("emp_id") == emp_id and evt["type"] == "check_in":
-                                    event_type = "check_out"
-                                    status = "checked_out"
-                                    break
-
+                        if emp_id not in employee_status:
+                            # 1. เช็คอินครั้งแรก
+                            employee_status[emp_id] = {
+                                "check_in_time": now,
+                                "status": "checked_in"
+                            }
                             time_str = datetime.now().strftime("%H:%M:%S")
                             recent_events.append({
-                                "type": event_type,
+                                "type": "check_in",
                                 "name": name,
                                 "time": time_str,
                                 "score": confidence,
                                 "emp_id": emp_id,
                             })
-                            icon = "CHECK-IN" if event_type == "check_in" else "CHECK-OUT"
-                            print(f"[{icon}] {name} [{confidence:.0%}] @ {time_str}")
+                            print(f"[CHECK-IN] {name} [{confidence:.0%}] @ {time_str}")
+                            status = "checked_in"
                         else:
-                            for evt in reversed(recent_events):
-                                if evt.get("emp_id") == emp_id:
-                                    status = "checked_in" if evt["type"] == "check_in" else "checked_out"
-                                    break
+                            # 2. เคยเช็คอินไปแล้ว
+                            emp_state = employee_status[emp_id]
+                            
+                            if emp_state["status"] == "checked_in":
+                                # ตรวจสอบว่าผ่านไป 10 นาที (600 วินาที) หรือยัง
+                                if now - emp_state["check_in_time"] >= CHECKOUT_WAIT_SECONDS:
+                                    # เช็คเอาท์ได้
+                                    emp_state["status"] = "checked_out"
+                                    time_str = datetime.now().strftime("%H:%M:%S")
+                                    recent_events.append({
+                                        "type": "check_out",
+                                        "name": name,
+                                        "time": time_str,
+                                        "score": confidence,
+                                        "emp_id": emp_id,
+                                    })
+                                    print(f"[CHECK-OUT] {name} [{confidence:.0%}] @ {time_str}")
+                                    status = "checked_out"
+                                else:
+                                    # ยังไม่ถึง 10 นาที -> สถานะยังเป็น check_in อยู่ ไม่ต้องบันทึกซ้ำ
+                                    status = "checked_in"
+                            else:
+                                # ถ้าเป็น checked_out แล้ว ก็ให้เป็น checked_out ต่อไป ไม่บันทึกซ้ำ
+                                status = "checked_out"
                     elif match:
                         status = "scanning"
                         confidence = match.similarity
