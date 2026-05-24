@@ -52,7 +52,7 @@
 ### 2. Table : face_embeddings (ชุดเวกเตอร์ใบหน้าของพนักงาน)
 > เก็บ Biometric Vector ของใบหน้าพนักงาน ใช้สำหรับเปรียบเทียบตอนสแกนเข้างาน
 
-| ชื่อคอลัมน์ (Column) | ประเภทข้อมูล (Data Type) | ข้อจำกัด (Constraints) | ค่าเริ่มต้น (Default) | คำอธิบาย (Description) |
+| Column | Data Type | Constraints | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | id | UUID | PK, ห้ามว่าง | uuid4() | รหัสอ้างอิงระดับฐานข้อมูล |
 | employee_id | UUID | FK (employees.id), Unique, ห้ามว่าง | - | เชื่อมกับพนักงาน (1 พนักงาน มีได้ 1 ใบหน้าเท่านั้น) |
@@ -71,7 +71,7 @@
 ### 3. Table : attendance_records (ประวัติการสแกนเข้า-ออกงานประจำวัน)
 > เก็บประวัติเวลาการทำงานประจำวันของพนักงานทุกคน
 
-| ชื่อคอลัมน์ (Column) | ประเภทข้อมูล (Data Type) | ข้อจำกัด (Constraints) | ค่าเริ่มต้น (Default) | คำอธิบาย (Description) |
+| Column | Data Type | Constraints | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
 | id | UUID | PK, ห้ามว่าง | uuid4() | รหัสอ้างอิงระดับฐานข้อมูล |
 | employee_id | UUID | FK (employees.id), Indexed, ห้ามว่าง | - | พนักงานที่สแกนใบหน้าเข้างาน |
