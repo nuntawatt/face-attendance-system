@@ -102,3 +102,54 @@ async def test_db_soft_delete_integration():
 
         # Rollback so we don't leave dirty data in database
         await session.rollback()
+
+    from app.database.session import async_engine
+    await async_engine.dispose()
+
+
+@pytest.mark.asyncio
+async def test_employee_service_deactivate_soft_delete():
+    """Verify that calling EmployeeService.deactivate_employee(employee_id) correctly soft deletes and deactivates the employee."""
+    from app.database.session import async_session_factory
+    from app.services.employee_service import EmployeeService
+    from app.repositories.employee import EmployeeRepository
+    from sqlalchemy import select
+
+    async with async_session_factory() as session:
+        repo = EmployeeRepository(session)
+        service = EmployeeService(session)
+
+        # 1. Create employee
+        emp_code = f"SERV-DEL-{uuid4()}"[:20]
+        emp = Employee(
+            employee_code=emp_code,
+            full_name="Service Soft Delete",
+            department="Engineering",
+            position="Engineer",
+        )
+        emp = await repo.create(emp)
+        await session.flush()
+        emp_id = emp.id
+
+        # 2. Deactivate using service
+        await service.deactivate_employee(emp_id)
+        await session.flush()
+
+        # 3. Verify they are no longer searchable via repo.get_by_id
+        not_found = await repo.get_by_id(emp_id)
+        assert not_found is None
+
+        # 4. Verify raw DB record has is_active = False and deleted_at populated
+        raw_result = await session.execute(
+            select(Employee).where(Employee.id == emp_id)
+        )
+        raw_emp = raw_result.scalar_one_or_none()
+        assert raw_emp is not None
+        assert raw_emp.is_active is False
+        assert raw_emp.deleted_at is not None
+
+        # Rollback transaction
+        await session.rollback()
+
+    from app.database.session import async_engine
+    await async_engine.dispose()

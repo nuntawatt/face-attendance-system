@@ -86,6 +86,7 @@ class EmployeeService:
             raise EmployeeNotFoundError(employee_id)
 
         employee.is_active = False
+        await self._repo.delete(employee)
         await self._session.commit()
         logger.info("employee_deactivated", employee_id=str(employee_id))
 

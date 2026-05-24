@@ -24,11 +24,11 @@ from uuid import UUID
 import numpy as np
 import structlog
 
+from app.core.config import settings
+
 logger = structlog.get_logger(__name__)
 
 # ค่า threshold cosine similarity อ่านจาก config เพื่อปรับได้ผ่าน .env
-from app.core.config import settings
-
 RECOGNITION_THRESHOLD = settings.face_recognition_threshold
 
 

@@ -7,17 +7,17 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from alembic import context
 
+# เพิ่ม import models เพื่อให้ Alembic รู้จัก metadata ของเราในการสร้าง migrations
+import app.models  # noqa: F401
+from app.database.base import Base
+from app.core.config import settings
+
 # ใช้ alembic ในโหมด async โดยการสร้าง async engine และใช้ connection แบบ async ในการรัน migrations
 config = context.config
 
 # เช็คว่ามี config file สำหรับ logging หรือไม่ ถ้ามีให้โหลด config นั้นมาใช้
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
-
-# เพิ่ม import models เพื่อให้ Alembic รู้จัก metadata ของเราในการสร้าง migrations
-import app.models  # noqa: F401
-from app.database.base import Base
-from app.core.config import settings
 
 target_metadata = Base.metadata
 

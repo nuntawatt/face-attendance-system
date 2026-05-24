@@ -25,6 +25,8 @@ import structlog
 from PIL import Image
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
+
 from app.services.minio_service import minio_service
 
 from app.ai.engine import face_engine, crop_and_encode_face
@@ -45,8 +47,6 @@ logger = structlog.get_logger(__name__)
 # คะแนนคุณภาพขั้นต่ำสำหรับลงทะเบียน
 MIN_QUALITY_THRESHOLD = 0.4
 # เวอร์ชันโมเดลที่ใช้สำหรับ embedding นี้ เก็บไว้เพื่อ compatibility ในอนาคต
-from app.core.config import settings
-
 MODEL_VERSION = f"{settings.face_model_pack}_v1"
 
 

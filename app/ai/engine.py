@@ -23,6 +23,8 @@ import numpy as np
 import structlog
 from insightface.app import FaceAnalysis
 
+from app.core.config import settings
+
 logger = structlog.get_logger(__name__)
 
 
@@ -100,7 +102,7 @@ class FaceEngine:
         return results
 
     @staticmethod
-    def _estimate_quality(frame: np.ndarray, bbox: tuple) -> float:
+    def _estimate_quality(frame: np.ndarray, bbox: tuple[int, int, int, int]) -> float:
         """
         Heuristic วัดคุณภาพภาพแบบเบา: Laplacian variance (ความคมชัด)
         คะแนน > 100 = ใช้ได้, > 200 = คุณภาพดีสำหรับลงทะเบียน
@@ -135,13 +137,13 @@ def crop_and_encode_face(
     if face_crop.size == 0:
         raise ValueError("Invalid bounding box size resulted in an empty face crop.")
 
-    _, buffer = cv2.imencode(".jpg", face_crop, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
+    _, buffer = cv2.imencode(
+        ".jpg", face_crop, [int(cv2.IMWRITE_JPEG_QUALITY), quality]
+    )
     return buffer.tobytes()
 
 
 # Singleton ระดับ application ใช้ค่าจาก config
-from app.core.config import settings
-
 face_engine = FaceEngine(
     model_pack=settings.face_model_pack,
     det_size=(settings.face_det_size, settings.face_det_size),

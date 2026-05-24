@@ -36,6 +36,18 @@ class HealthResponse(BaseModel):
 async def health_check(request: Request) -> HealthResponse:
     """ตรวจสอบว่า dependency หลักทั้งหมดพร้อมใช้งาน"""
 
+    # ตรวจ Database
+    database_status = "unhealthy"
+    try:
+        from app.database.session import async_session_factory
+        from sqlalchemy import text
+
+        async with async_session_factory() as session:
+            await session.execute(text("SELECT 1"))
+        database_status = "connected"
+    except Exception:
+        pass
+
     # ตรวจ Redis
     redis_status = "unhealthy"
     try:
@@ -50,7 +62,7 @@ async def health_check(request: Request) -> HealthResponse:
 
     return HealthResponse(
         status="ok",
-        database="connected",
+        database=database_status,
         redis=redis_status,
         ai_engine=ai_status,
         embedding_index_size=embedding_index.size,
