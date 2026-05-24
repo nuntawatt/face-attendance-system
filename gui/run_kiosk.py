@@ -8,6 +8,15 @@ Face Attendance Kiosk OpenCV Desktop Application
     r = ลงทะเบียนใบหน้าที่เห็นอยู่ตอนนี้
     q/ESC = ปิดโปรแกรม
 """
+# ruff: noqa: E402
+
+import sys
+from pathlib import Path
+
+# เพิ่มโฟลเดอร์ root ของโปรเจกต์เข้าไปใน sys.path เพื่อให้สามารถเรียกใช้โมดูลในโฟลเดอร์ app ได้อย่างถูกต้อง
+root_dir = Path(__file__).resolve().parent.parent
+if str(root_dir) not in sys.path:
+    sys.path.insert(0, str(root_dir))
 
 import asyncio
 import time
