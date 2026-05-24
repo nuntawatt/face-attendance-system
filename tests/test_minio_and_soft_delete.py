@@ -109,7 +109,7 @@ async def test_db_soft_delete_integration():
 
 @pytest.mark.asyncio
 async def test_employee_service_deactivate_soft_delete():
-    """Verify that calling EmployeeService.deactivate_employee(employee_id) correctly soft deletes and deactivates the employee."""
+    """ตรวจสอบการปิดใช้งานพนักงาน (Soft Delete) ผ่านระดับ Service Layer ว่าใช้งานได้จริงและเก็บข้อมูลเวลาที่ลบลง DB"""
     from app.database.session import async_session_factory
     from app.services.employee_service import EmployeeService
     from app.repositories.employee import EmployeeRepository
@@ -119,7 +119,7 @@ async def test_employee_service_deactivate_soft_delete():
         repo = EmployeeRepository(session)
         service = EmployeeService(session)
 
-        # 1. Create employee
+        # 1. สร้างข้อมูลพนักงานชั่วคราวขึ้นมาในระบบ
         emp_code = f"SERV-DEL-{uuid4()}"[:20]
         emp = Employee(
             employee_code=emp_code,
@@ -131,15 +131,15 @@ async def test_employee_service_deactivate_soft_delete():
         await session.flush()
         emp_id = emp.id
 
-        # 2. Deactivate using service
+        # 2. ทำการสั่งปิดการใช้งาน (deactivate) ผ่านทาง Service
         await service.deactivate_employee(emp_id)
         await session.flush()
 
-        # 3. Verify they are no longer searchable via repo.get_by_id
+        # 3. ยืนยันว่าไม่สามารถค้นหาข้อมูลผ่าน repository ปกติได้แล้ว (เพราะโดนกรอง soft delete ออก)
         not_found = await repo.get_by_id(emp_id)
         assert not_found is None
 
-        # 4. Verify raw DB record has is_active = False and deleted_at populated
+        # 4. ดึงข้อมูลดิบจาก Database มาตรวจสอบว่ามีสถานะ is_active = False และมีวันเวลา deleted_at บันทึกไว้จริง
         raw_result = await session.execute(
             select(Employee).where(Employee.id == emp_id)
         )
@@ -148,7 +148,7 @@ async def test_employee_service_deactivate_soft_delete():
         assert raw_emp.is_active is False
         assert raw_emp.deleted_at is not None
 
-        # Rollback transaction
+        # ทำการ Rollback ข้อมูลทิ้งเพื่อรักษาความสะอาดของระบบฐานข้อมูลทดสอบ
         await session.rollback()
 
     from app.database.session import async_engine

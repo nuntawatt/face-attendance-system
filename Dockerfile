@@ -1,21 +1,29 @@
 FROM python:3.11-slim
 
-ENV PYTHONDONTWRITEBYTECODE=1
-ENV PYTHONUNBUFFERED=1
+# ป้องกัน Python เขียนไฟล์ .pyc และตั้งค่า Log ให้แสดงผลแบบเรียลไทม์ (unbuffered)
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
+# ติดตั้งเครื่องมือคอมไพล์และไลบรารีระบบที่ OpenCV และ InsightFace C++ จำเป็นต้องใช้
+RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
+    g++ \
     libgl1 \
     libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
+# ติดตั้ง Python Packages โดยอิงจาก Docker layer caching เพื่อความรวดเร็ว
 COPY requirements.txt .
-
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+# ความปลอดภัยระดับ Production: กำหนดสิทธิ์ให้รันด้วยผู้ใช้ทั่วไป (non-root) ป้องกันการเจาะระบบโฮสต์
+RUN useradd -U -m appuser && chown -R appuser:appuser /app
+USER appuser
 
 EXPOSE 8000
 
