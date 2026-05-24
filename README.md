@@ -73,8 +73,8 @@
 
 | ชื่อคอลัมน์ (Column) | ประเภทข้อมูล (Data Type) | ข้อจำกัด (Constraints) | ค่าเริ่มต้น (Default) | คำอธิบาย (Description) |
 | :--- | :--- | :--- | :--- | :--- |
-| id | UUID | **PK**, ห้ามว่าง | uuid4() | รหัสอ้างอิงระดับฐานข้อมูล |
-| employee_id | UUID | **FK** (employees.id), Indexed, ห้ามว่าง | - | พนักงานที่สแกนใบหน้าเข้างาน |
+| id | UUID | PK, ห้ามว่าง | uuid4() | รหัสอ้างอิงระดับฐานข้อมูล |
+| employee_id | UUID | FK (employees.id), Indexed, ห้ามว่าง | - | พนักงานที่สแกนใบหน้าเข้างาน |
 | work_date | DATE | Indexed, ห้ามว่าง | - | วันที่ทำงาน (อิงตามเวลาไทย Asia/Bangkok เสมอ) |
 | check_in_time | TIMESTAMPTZ | ห้ามว่าง | - | เวลาที่สแกนใบหน้าเข้างานสำเร็จครั้งแรกของวัน |
 | check_out_time | TIMESTAMPTZ | ว่างได้ | NULL | เวลาสแกนออกงานล่าสุด (ระบบจะสลับเช็คเอาท์หลังผ่านไป 10 นาที) |
@@ -84,7 +84,7 @@
 | image_url | VARCHAR(512) | ว่างได้ | NULL | ลิงก์รูปภาพถ่ายสดใบหน้าตอนที่สแกนผ่านจริงใน MinIO |
 | created_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่สร้างบันทึกนี้เข้าระบบ |
 | updated_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่อัปเดตข้อมูลล่าสุด |
-| deleted_at | TIMESTAMPTZ | ว่างได้ | NULL | วัน-เวลาที่ลบบันทึกประวัตินี้ออก (**Soft Delete**) |
+| deleted_at | TIMESTAMPTZ | ว่างได้ | NULL | วัน-เวลาที่ลบบันทึกประวัตินี้ออก (Soft Delete) |
 
 > ⚠️ **หมายเหตุ:** มีคีย์ประกอบแบบพิเศษ `UniqueConstraint("employee_id", "work_date")` ควบคุมอยู่เพื่อห้ามสร้างแถวบันทึกเวลาซ้ำซ้อนในวันเดียวกัน
 
