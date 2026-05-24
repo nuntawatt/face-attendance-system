@@ -92,10 +92,27 @@
 
 ## ⚡ Quick Start
 
-### 1. เปิดใช้งานบริการผ่าน Docker
-ระบบต้องการฐานข้อมูล PostgreSQL, แคช Redis และพื้นที่เก็บรูป MinIO ในการทำงาน:
+### 1. Command Docker
 
-- **ลิงก์หน้าจัดการ MinIO Web Console**: http://localhost:9001
+```bash
+# Run
+docker compose up -d
+
+# Build the image and run
+docker compose up -d --build
+
+# Stop and cleanup volumes
+docker compose down -v
+
+# Stop containers
+docker compose stop
+
+# Restart containers
+docker compose restart
+
+# View logs
+docker compose logs -f
+```
 
 ### 2. ตั้งค่าการรันระบบหลังบ้าน (FastAPI Server)
 
@@ -119,7 +136,6 @@
    ```bash
    uvicorn app.main:app --reload
    ```
-   *หมายเหตุ: สามารถเข้าเช็ค Interactive API Documents (Swagger) ได้ที่ [http://localhost:8000/docs](http://localhost:8000/docs)*
 
 ---
 
