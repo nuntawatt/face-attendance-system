@@ -8,7 +8,6 @@ Face Attendance Kiosk OpenCV Desktop Application
     r = ลงทะเบียนใบหน้าที่เห็นอยู่ตอนนี้
     q/ESC = ปิดโปรแกรม
 """
-# ruff: noqa: E402
 
 import sys
 from pathlib import Path
