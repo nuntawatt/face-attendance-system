@@ -33,19 +33,19 @@
 
 | Column | Data Type | Constraints | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | **PK**, ห้ามว่าง | `uuid4()` | รหัสอ้างอิงพนักงานระดับฐานข้อมูล |
-| `employee_code` | `VARCHAR(50)` | **Unique**, Indexed, ห้ามว่าง | - | รหัสพนักงาน (เช่น EMP-001) ใช้เชื่อมโยงระบบอื่น |
-| `full_name` | `VARCHAR(200)` | ห้ามว่าง | - | ชื่อ - นามสกุล ของพนักงาน |
-| `department` | `VARCHAR(100)` | Indexed, ห้ามว่าง | - | แผนกหรือฝ่ายที่สังกัด |
-| `position` | `VARCHAR(100)` | ห้ามว่าง | - | ตำแหน่งงานของพนักงาน |
-| `email` | `VARCHAR(255)` | **Unique**, ว่างได้ | `NULL` | อีเมลสำหรับติดต่อ |
-| `phone` | `VARCHAR(20)` | ว่างได้ | `NULL` | เบอร์โทรศัพท์พนักงาน |
-| `notes` | `TEXT` | ว่างได้ | `NULL` | หมายเหตุหรือรายละเอียดเพิ่มเติม |
-| `is_active` | `BOOLEAN` | ห้ามว่าง | `TRUE` | สถานะการทำงาน (`TRUE`=ยังอยู่, `FALSE`=พ้นสภาพ) |
-| `face_registered` | `BOOLEAN` | ห้ามว่าง | `FALSE` | สถานะการลงทะเบียนใบหน้า (`TRUE`=ลงทะเบียนแล้ว) |
-| `created_at` | `TIMESTAMPTZ` | ห้ามว่าง | `now()` | วัน-เวลาที่บันทึกข้อมูลเข้าระบบ |
-| `updated_at` | `TIMESTAMPTZ` | ห้ามว่าง | `now()` | วัน-เวลาที่มีการแก้ไขข้อมูลล่าสุด |
-| `deleted_at` | `TIMESTAMPTZ` | ว่างได้ | `NULL` | วัน-เวลาที่ลบพนักงานออกจากระบบ (**Soft Delete**) |
+| id | UUID | **PK**, ห้ามว่าง | uuid4() | รหัสอ้างอิงพนักงานระดับฐานข้อมูล |
+| employee_code | VARCHAR(50) | **Unique**, Indexed, ห้ามว่าง | - | รหัสพนักงาน (เช่น EMP-001) ใช้เชื่อมโยงระบบอื่น |
+| full_name | VARCHAR(200) | ห้ามว่าง | - | ชื่อ - นามสกุล ของพนักงาน |
+| department | VARCHAR(100) | Indexed, ห้ามว่าง | - | แผนกหรือฝ่ายที่สังกัด |
+| position | VARCHAR(100) | ห้ามว่าง | - | ตำแหน่งงานของพนักงาน |
+| email | VARCHAR(255) | **Unique**, ว่างได้ | NULL | อีเมลสำหรับติดต่อ |
+| phone | VARCHAR(20) | ว่างได้ | NULL | เบอร์โทรศัพท์พนักงาน |
+| notes | TEXT | ว่างได้ | NULL | หมายเหตุหรือรายละเอียดเพิ่มเติม |
+| is_active | BOOLEAN | ห้ามว่าง | TRUE | สถานะการทำงาน (TRUE=ยังอยู่, FALSE=พ้นสภาพ) |
+| face_registered | BOOLEAN | ห้ามว่าง | FALSE | สถานะการลงทะเบียนใบหน้า (TRUE=ลงทะเบียนแล้ว) |
+| created_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่บันทึกข้อมูลเข้าระบบ |
+| updated_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่มีการแก้ไขข้อมูลล่าสุด |
+| deleted_at | TIMESTAMPTZ | ว่างได้ | NULL | วัน-เวลาที่ลบพนักงานออกจากระบบ (**Soft Delete**) |
 
 ---
 
@@ -54,15 +54,15 @@
 
 | ชื่อคอลัมน์ (Column) | ประเภทข้อมูล (Data Type) | ข้อจำกัด (Constraints) | ค่าเริ่มต้น (Default) | คำอธิบาย (Description) |
 | :--- | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | **PK**, ห้ามว่าง | `uuid4()` | รหัสอ้างอิงระดับฐานข้อมูล |
-| `employee_id` | `UUID` | **FK** (`employees.id`), **Unique**, ห้ามว่าง | - | เชื่อมกับพนักงาน (1 พนักงาน มีได้ 1 ใบหน้าเท่านั้น) |
-| `embedding_vector` | `BYTEA` | ห้ามว่าง | - | เวกเตอร์ลักษณะใบหน้า 512 มิติ ที่ AI คำนวณได้ |
-| `model_version` | `VARCHAR(50)` | ห้ามว่าง | - | เวอร์ชันโมเดล AI ที่ใช้ (เช่น `buffalo_l_v1`) |
-| `image_quality_score`| `FLOAT` | ว่างได้ | `NULL` | คะแนนความคมชัดของภาพถ่ายตอนลงทะเบียน (0.0 - 1.0) |
-| `image_url` | `VARCHAR(512)` | ว่างได้ | `NULL` | ลิงก์รูปภาพใบหน้าพนักงานที่บันทึกไว้ในระบบ MinIO |
-| `created_at` | `TIMESTAMPTZ` | ห้ามว่าง | `now()` | วัน-เวลาที่ลงทะเบียนใบหน้า |
-| `updated_at` | `TIMESTAMPTZ` | ห้ามว่าง | `now()` | วัน-เวลาที่แก้ไขชุดใบหน้าล่าสุด |
-| `deleted_at` | `TIMESTAMPTZ` | ว่างได้ | `NULL` | วัน-เวลาที่ลบชุดข้อมูลใบหน้า (**Soft Delete**) |
+| id | UUID | **PK**, ห้ามว่าง | uuid4() | รหัสอ้างอิงระดับฐานข้อมูล |
+| employee_id | UUID | **FK** (employees.id), **Unique**, ห้ามว่าง | - | เชื่อมกับพนักงาน (1 พนักงาน มีได้ 1 ใบหน้าเท่านั้น) |
+| embedding_vector | BYTEA | ห้ามว่าง | - | เวกเตอร์ลักษณะใบหน้า 512 มิติ ที่ AI คำนวณได้ |
+| model_version | VARCHAR(50) | ห้ามว่าง | - | เวอร์ชันโมเดล AI ที่ใช้ (เช่น buffalo_l_v1) |
+| image_quality_score| FLOAT | ว่างได้ | NULL | คะแนนความคมชัดของภาพถ่ายตอนลงทะเบียน (0.0 - 1.0) |
+| image_url | VARCHAR(512) | ว่างได้ | NULL | ลิงก์รูปภาพใบหน้าพนักงานที่บันทึกไว้ในระบบ MinIO |
+| created_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่ลงทะเบียนใบหน้า |
+| updated_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่แก้ไขชุดใบหน้าล่าสุด |
+| deleted_at | TIMESTAMPTZ | ว่างได้ | NULL | วัน-เวลาที่ลบชุดข้อมูลใบหน้า (**Soft Delete**) |
 
 > ⚠️ **หมายเหตุ:** `employee_id` เป็นแบบ **Cascade Delete** หากลบข้อมูลพนักงานในตารางหลัก ใบหน้าในตารางนี้จะถูกลบตามทันที
 
@@ -73,18 +73,18 @@
 
 | ชื่อคอลัมน์ (Column) | ประเภทข้อมูล (Data Type) | ข้อจำกัด (Constraints) | ค่าเริ่มต้น (Default) | คำอธิบาย (Description) |
 | :--- | :--- | :--- | :--- | :--- |
-| `id` | `UUID` | **PK**, ห้ามว่าง | `uuid4()` | รหัสอ้างอิงระดับฐานข้อมูล |
-| `employee_id` | `UUID` | **FK** (`employees.id`), Indexed, ห้ามว่าง | - | พนักงานที่สแกนใบหน้าเข้างาน |
-| `work_date` | `DATE` | Indexed, ห้ามว่าง | - | วันที่ทำงาน (อิงตามเวลาไทย `Asia/Bangkok` เสมอ) |
-| `check_in_time` | `TIMESTAMPTZ` | ห้ามว่าง | - | เวลาที่สแกนใบหน้าเข้างานสำเร็จครั้งแรกของวัน |
-| `check_out_time` | `TIMESTAMPTZ` | ว่างได้ | `NULL` | เวลาสแกนออกงานล่าสุด (ระบบจะสลับเช็คเอาท์หลังผ่านไป 10 นาที) |
-| `camera_id` | `VARCHAR(100)` | ห้ามว่าง | - | ไอดีกล้องหรืออุปกรณ์ Kiosk ที่ใช้สแกน |
-| `confidence_score` | `FLOAT` | ห้ามว่าง | - | คะแนนความแม่นยำของใบหน้า (%) |
-| `status` | `VARCHAR(20)` | ห้ามว่าง | `'present'` | สถานะ: `present` (มาทำงานปกติ), `late` (สาย), `early_leave` (กลับก่อนเวลา) |
-| `image_url` | `VARCHAR(512)` | ว่างได้ | `NULL` | ลิงก์รูปภาพถ่ายสดใบหน้าตอนที่สแกนผ่านจริงใน MinIO |
-| `created_at` | `TIMESTAMPTZ` | ห้ามว่าง | `now()` | วัน-เวลาที่สร้างบันทึกนี้เข้าระบบ |
-| `updated_at` | `TIMESTAMPTZ` | ห้ามว่าง | `now()` | วัน-เวลาที่อัปเดตข้อมูลล่าสุด |
-| `deleted_at` | `TIMESTAMPTZ` | ว่างได้ | `NULL` | วัน-เวลาที่ลบบันทึกประวัตินี้ออก (**Soft Delete**) |
+| id | UUID | **PK**, ห้ามว่าง | uuid4() | รหัสอ้างอิงระดับฐานข้อมูล |
+| employee_id | UUID | **FK** (employees.id), Indexed, ห้ามว่าง | - | พนักงานที่สแกนใบหน้าเข้างาน |
+| work_date | DATE | Indexed, ห้ามว่าง | - | วันที่ทำงาน (อิงตามเวลาไทย Asia/Bangkok เสมอ) |
+| check_in_time | TIMESTAMPTZ | ห้ามว่าง | - | เวลาที่สแกนใบหน้าเข้างานสำเร็จครั้งแรกของวัน |
+| check_out_time | TIMESTAMPTZ | ว่างได้ | NULL | เวลาสแกนออกงานล่าสุด (ระบบจะสลับเช็คเอาท์หลังผ่านไป 10 นาที) |
+| camera_id | VARCHAR(100) | ห้ามว่าง | - | ไอดีกล้องหรืออุปกรณ์ Kiosk ที่ใช้สแกน |
+| confidence_score | FLOAT | ห้ามว่าง | - | คะแนนความแม่นยำของใบหน้า (%) |
+| status | VARCHAR(20) | ห้ามว่าง | 'present' | สถานะ: present (มาทำงานปกติ), late (สาย), early_leave (กลับก่อนเวลา) |
+| image_url | VARCHAR(512) | ว่างได้ | NULL | ลิงก์รูปภาพถ่ายสดใบหน้าตอนที่สแกนผ่านจริงใน MinIO |
+| created_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่สร้างบันทึกนี้เข้าระบบ |
+| updated_at | TIMESTAMPTZ | ห้ามว่าง | now() | วัน-เวลาที่อัปเดตข้อมูลล่าสุด |
+| deleted_at | TIMESTAMPTZ | ว่างได้ | NULL | วัน-เวลาที่ลบบันทึกประวัตินี้ออก (**Soft Delete**) |
 
 > ⚠️ **หมายเหตุ:** มีคีย์ประกอบแบบพิเศษ `UniqueConstraint("employee_id", "work_date")` ควบคุมอยู่เพื่อห้ามสร้างแถวบันทึกเวลาซ้ำซ้อนในวันเดียวกัน
 
