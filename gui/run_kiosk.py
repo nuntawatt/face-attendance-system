@@ -1,3 +1,4 @@
+# ruff: noqa: E402
 """
 Face Attendance Kiosk OpenCV Desktop Application
 
