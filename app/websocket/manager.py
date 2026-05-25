@@ -1,17 +1,3 @@
-"""
-WebSocket connection manager
-
-จัดการ lifecycle ของ WebSocket connections ทั้งหมด:
-- เก็บ active connections ใน set (O(1) add/remove)
-- Broadcast event ไปทุก client ที่เชื่อมอยู่
-- จัดการ disconnect อัตโนมัติเมื่อ client หลุด
-
-ทำไมไม่ใช้ Redis Pub/Sub?
-สำหรับ single-instance deployment, in-process broadcast เพียงพอและเร็วกว่า
-ถ้า scale เป็น multi-instance ค่อยเพิ่ม Redis Pub/Sub เป็น transport layer
-โดย manager ยังคงเป็น subscriber ที่ forward ไปยัง local WebSocket clients
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -23,11 +9,13 @@ from pydantic import BaseModel
 logger = structlog.get_logger(__name__)
 
 
-# Event schemas ที่ส่งผ่าน WebSocket
+# WebSocket Event Schemas
 
 
 class AttendanceEvent(BaseModel):
-    """Event ที่ broadcast เมื่อ AI pipeline จำแนกใบหน้าและบันทึก attendance"""
+    """
+    Event ที่ broadcast เมื่อ AI pipeline จำแนกใบหน้าและบันทึก attendance
+    """
 
     event_type: str  # "check_in" | "check_out"
     employee_id: str
@@ -61,14 +49,12 @@ class ConnectionManager:
     async def connect(self, websocket: WebSocket) -> None:
         """รับ connection ใหม่ ส่ง welcome message กลับ"""
         await websocket.accept()
-        async with self._lock:
-            self._connections.add(websocket)
+        async with self._lock: self._connections.add(websocket)
         logger.info("ws_client_connected", total_connections=len(self._connections))
 
     async def disconnect(self, websocket: WebSocket) -> None:
         """ลบ connection ที่หลุด"""
-        async with self._lock:
-            self._connections.discard(websocket)
+        async with self._lock: self._connections.discard(websocket)
         logger.info("ws_client_disconnected", total_connections=len(self._connections))
 
     @property
@@ -104,9 +90,7 @@ class ConnectionManager:
                 for ws in dead_clients:
                     self._connections.discard(ws)
 
-    async def _safe_send(
-        self, ws: WebSocket, message: str, dead_list: list[WebSocket]
-    ) -> None:
+    async def _safe_send(self, ws: WebSocket, message: str, dead_list: list[WebSocket]) -> None:
         """ส่ง message ไป client ถ้าล้มเหลว เพิ่มเข้า dead_list"""
         try:
             await ws.send_text(message)
