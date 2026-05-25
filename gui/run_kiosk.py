@@ -98,6 +98,7 @@ def draw_face_overlay(frame, bbox, name, confidence, status, det_score):
     cv2.rectangle(overlay, (x1 - 1, panel_y1), (x2 + 1, panel_y2), COLOR_PANEL_BG, -1)
     cv2.addWeighted(overlay, 0.85, frame, 0.15, 0, frame)
 
+    # ชื่อพนักงานและสถานะ ถ้าไม่มีชื่อให้แสดงแต่สถานะอย่างเดียว
     if name:
         draw_label(
             frame,
