@@ -10,6 +10,7 @@ alembic>=1.15.0,<2.0.0
 # Validation
 pydantic>=2.0.0,<3.0.0
 pydantic-settings>=2.0.0,<3.0.0
+email-validator>=2.0.0,<3.0.0
 
 # Cache & Message Broker
 redis>=5.0.0,<6.0.0
