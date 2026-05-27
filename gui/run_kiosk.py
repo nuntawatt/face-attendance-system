@@ -163,7 +163,7 @@ def draw_instructions(frame):
     cv2.addWeighted(overlay, 0.85, frame, 0.15, 0, frame)
     draw_label(
         frame,
-        "[R] Register Face    [Q/ESC] Quit",
+        "[R] Register Face    [I] Check-In    [O] Check-Out    [Q/ESC] Quit",
         (16, h - 12),
         font_scale=0.5,
         color=COLOR_CYAN,
@@ -239,14 +239,23 @@ async def register_face_flow(frame, face_engine, session_factory):
 
     embedding_bytes = face.embedding.tobytes()
 
-    # ขอชื่อจาก terminal
-    print("\n" + "=" * 40)
-    emp_code = input("  Enter employee code (e.g. EMP-001): ").strip()
-    full_name = input("  Enter full name: ").strip()
-    print("=" * 40)
-
-    if not emp_code or not full_name:
-        return False, "Registration cancelled empty input.", None
+    # ดักจับคนเดิมที่ลงทะเบียนแล้ว เพื่อป้องกันการลงทะเบียนใบหน้าซ้ำซ้อน
+    from app.ai.recognition import embedding_index
+    if embedding_index.size > 0:
+        match = await embedding_index.find_match(face.embedding)
+        if match and match.is_confident:
+            async with session_factory() as session:
+                from app.repositories.employee import EmployeeRepository
+                emp_repo = EmployeeRepository(session)
+                existing_emp = await emp_repo.get_by_id(match.employee_id)
+                if existing_emp:
+                    return (
+                        False,
+                        f"Already Registered: {existing_emp.full_name} ({existing_emp.employee_code})",
+                        None,
+                    )
+                else:
+                    return False, "Face already registered in system.", None
 
     from app.models.employee import Employee
     from app.models.face_embedding import FaceEmbedding
@@ -258,10 +267,28 @@ async def register_face_flow(frame, face_engine, session_factory):
     async with session_factory() as session:
         emp_repo = EmployeeRepository(session)
 
+        # 1. ค้นหารหัสพนักงานถัดไปที่ยังว่างอยู่โดยอัตโนมัติ (EMP-001, EMP-002, ...)
+        emp_code = "EMP-001"
+        for i in range(1, 1000):
+            test_code = f"EMP-{i:03d}"
+            existing_emp = await emp_repo.get_by_employee_code(test_code)
+            if not existing_emp:
+                emp_code = test_code
+                break
+
+        # 2. ขอชื่อจาก terminal (หรือสร้างให้อัตโนมัติถ้าปล่อยว่าง)
+        print("\n" + "=" * 40)
+        print(f"  Auto-generated Employee Code: {emp_code}")
+        full_name = input(f"  Enter name (Press Enter for 'Test Employee {emp_code.split('-')[-1]}'): ").strip()
+        print("=" * 40)
+
+        if not full_name:
+            suffix = emp_code.split("-")[-1]
+            full_name = f"Test Employee {suffix}"
+
         # เช็คซ้ำ
         existing = await emp_repo.get_by_employee_code(emp_code)
         if existing:
-            # ถ้ามีอยู่แล้ว -> update embedding
             emp = existing
         else:
             # สร้างพนักงานใหม่
@@ -387,6 +414,10 @@ async def main():
             good_faces = [f for f in faces if f.det_score >= MIN_DET_SCORE]
             num_detected = len(good_faces)
 
+            active_emp_id = None
+            active_name = None
+            active_confidence = 0.0
+
             # Recognition + Drawing
             for face in good_faces:
                 name = None
@@ -400,6 +431,12 @@ async def main():
                         emp_id = str(match.employee_id)
                         name = employee_names.get(emp_id, f"ID:{emp_id[:8]}")
                         confidence = match.similarity
+                        
+                        if not active_emp_id:
+                            active_emp_id = emp_id
+                            active_name = name
+                            active_confidence = confidence
+
                         now = time.monotonic()
 
                         if emp_id not in employee_status:
@@ -513,6 +550,58 @@ async def main():
                     print(f"[OK] {msg}")
                 else:
                     print(f"[FAIL] {msg}")
+            elif key == ord("i") or key == ord("I"):
+                # Force Check-In Mode
+                if active_emp_id:
+                    now = time.monotonic()
+                    employee_status[active_emp_id] = {
+                        "check_in_time": now,
+                        "status": "checked_in",
+                    }
+                    time_str = datetime.now().strftime("%H:%M:%S")
+                    recent_events = [evt for evt in recent_events if not (evt["emp_id"] == active_emp_id and evt["type"] == "check_in")]
+                    recent_events.append(
+                        {
+                            "type": "check_in",
+                            "name": active_name,
+                            "time": time_str,
+                            "score": active_confidence,
+                            "emp_id": active_emp_id,
+                        }
+                    )
+                    print(f"[FORCE CHECK-IN] {active_name} @ {time_str}")
+                    register_msg = f"Forced Check-In: {active_name}"
+                    register_msg_until = time.monotonic() + 3.0
+                else:
+                    print("[FAIL] No active face recognized to force check-in.")
+                    register_msg = "No recognized face!"
+                    register_msg_until = time.monotonic() + 3.0
+            elif key == ord("o") or key == ord("O"):
+                # Force Check-Out Mode
+                if active_emp_id:
+                    now = time.monotonic()
+                    employee_status[active_emp_id] = {
+                        "check_in_time": now - CHECKOUT_WAIT_SECONDS - 1,
+                        "status": "checked_out",
+                    }
+                    time_str = datetime.now().strftime("%H:%M:%S")
+                    recent_events = [evt for evt in recent_events if not (evt["emp_id"] == active_emp_id and evt["type"] == "check_out")]
+                    recent_events.append(
+                        {
+                            "type": "check_out",
+                            "name": active_name,
+                            "time": time_str,
+                            "score": active_confidence,
+                            "emp_id": active_emp_id,
+                        }
+                    )
+                    print(f"[FORCE CHECK-OUT] {active_name} @ {time_str}")
+                    register_msg = f"Forced Check-Out: {active_name}"
+                    register_msg_until = time.monotonic() + 3.0
+                else:
+                    print("[FAIL] No active face recognized to force check-out.")
+                    register_msg = "No recognized face!"
+                    register_msg_until = time.monotonic() + 3.0
 
     except KeyboardInterrupt:
         pass

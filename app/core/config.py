@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 from functools import cached_property
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
@@ -21,7 +22,11 @@ from app.camera.stream_reader import CameraConfig
 
 
 class Settings(BaseSettings):
-    model_config = {"env_file": ".env", "env_file_encoding": "utf-8", "extra": "ignore"}
+    model_config = {
+        "env_file": Path(__file__).resolve().parent.parent.parent / ".env",
+        "env_file_encoding": "utf-8",
+        "extra": "ignore",
+    }
 
     # App
     app_name: str = "Face Attendance System"
