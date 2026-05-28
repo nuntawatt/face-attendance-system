@@ -76,7 +76,8 @@ class Settings(BaseSettings):
     face_recognition_threshold: float = 0.45
     min_image_quality: float = 0.4
 
-
+    # Control background camera processing in API server lifespan
+    enable_camera_workers: bool = Field(False, alias="ENABLE_CAMERA_WORKERS")
 
     # Camera JSON array of camera config dicts
     cameras_json: str = Field("[]", alias="CAMERAS_JSON")

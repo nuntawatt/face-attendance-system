@@ -56,31 +56,34 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         cache_service = EmbeddingCacheService(session)
         await cache_service.rebuild_index()
 
-    # 4. เริ่ม camera worker
+    # 4. เริ่ม camera worker (ถ้าเปิดใช้งาน)
     stop_event = asyncio.Event()
     camera_tasks: list[asyncio.Task] = []
 
-    for cam_config in settings.camera_configs:
-        engine = AttendanceEngine(
-            config=cam_config,
-            session_factory=async_session_factory,
-            redis_client=app.state.redis,
-            stop_event=stop_event,
-        )
-        task = asyncio.create_task(
-            engine.run(),
-            name=f"camera-{cam_config.camera_id}",
-        )
-        camera_tasks.append(task)
+    if settings.enable_camera_workers:
+        for cam_config in settings.camera_configs:
+            engine = AttendanceEngine(
+                config=cam_config,
+                session_factory=async_session_factory,
+                redis_client=app.state.redis,
+                stop_event=stop_event,
+            )
+            task = asyncio.create_task(
+                engine.run(),
+                name=f"camera-{cam_config.camera_id}",
+            )
+            camera_tasks.append(task)
+        logger.info("application พร้อมใช้งาน", จำนวนกล้อง=len(camera_tasks))
+    else:
+        logger.info("application พร้อมใช้งาน (ปิดใช้งาน Background Camera Workers)")
 
-    logger.info("application พร้อมใช้งาน", จำนวนกล้อง=len(camera_tasks))
     yield  # app ทำงานอยู่ที่นี่
 
     # Shutdown
     logger.info("กำลังปิด application")
-    stop_event.set()  # ส่งสัญญาณให้ทุก camera worker หยุด
-
-    if camera_tasks:
+    
+    if settings.enable_camera_workers and camera_tasks:
+        stop_event.set()  # ส่งสัญญาณให้ทุก camera worker หยุด
         await asyncio.gather(*camera_tasks, return_exceptions=True)
 
     # คืน resource ปิด Redis connection ป้องกัน connection leak
