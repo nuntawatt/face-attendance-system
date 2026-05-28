@@ -332,9 +332,10 @@ async def register_face_flow(frame, engine, session_factory):
             s.add(emp)
             await s.flush()
 
-        # Crop → MinIO → Embedding
-        crop = crop_and_encode_face(frame, face.bbox)
-        img_url = await minio_service.upload_image_async(crop, f"{uuid.uuid4()}.jpg")
+        # Encode รูปภาพเต็มเฟรมแบบคลีน (ไม่มีกรอบ) เป็น JPEG bytes
+        _, buf = cv2.imencode(".jpg", frame, [int(cv2.IMWRITE_JPEG_QUALITY), 95])
+        full_frame_bytes = buf.tobytes()
+        img_url = await minio_service.upload_image_async(full_frame_bytes, f"{uuid.uuid4()}.jpg")
         await FaceEmbeddingRepository(s).upsert(FaceEmbedding(
             employee_id=emp.id, embedding_vector=emb_bytes,
             model_version="edgeface_xs_v1",
@@ -475,6 +476,10 @@ async def main():
                 await asyncio.sleep(0.1)
                 continue
             frame = cv2.flip(frame, 1)
+
+            # เก็บรูปภาพเต็มเฟรมแบบคลีน (ไม่มีกรอบหรือข้อความใดๆ) เพื่อส่งวิเคราะห์ AI และบันทึก
+            clean_frame = frame.copy()
+
             cv2.subtract(frame, _vignette(*frame.shape[:2]), frame)
 
             # FPS
@@ -483,9 +488,9 @@ async def main():
             if el >= 1.0:
                 fps, fc, ft = fc / el, 0, time.monotonic()
 
-            # ตรวจจับทุก N เฟรม — เฟรมที่เหลือใช้ผลเก่า (ประหยัด CPU 60-70%)
+            # ตรวจจับทุก N เฟรมบน clean_frame (ประหยัด CPU 60-70% และไม่โดนกรอบ UI รบกวน)
             if fc % DETECT_EVERY_N == 0:
-                cached_faces = await face_engine.analyze_frame(frame)
+                cached_faces = await face_engine.analyze_frame(clean_frame)
             good = [f for f in cached_faces if f.det_score >= MIN_DET_SCORE]
             active_id = active_name = None
             active_conf = 0.0
@@ -509,7 +514,7 @@ async def main():
             if key in (ord("q"), ord("Q"), 27):
                 break
             elif key in (ord("r"), ord("R")):
-                msg, msg_until = await _handle_register(frame, emp_names)
+                msg, msg_until = await _handle_register(clean_frame, emp_names)
             elif key in (ord("i"), ord("I")):
                 msg, msg_until = _handle_force(active_id, active_name, active_conf,
                                                emp_status, events, "check_in")
