@@ -26,7 +26,8 @@ config.set_main_option("sqlalchemy.url", str(settings.database_url))
 
 # ฟังก์ชันสำหรับรัน migrations ในโหมด offline และ online โดยแยกกันเพื่อรองรับการใช้งานแบบ async
 def run_migrations_offline() -> None:
-    """Run migrations in 'offline' mode.
+    """
+    Run migrations in 'offline' mode.
 
     This configures the context with just a URL
     and not an Engine, though an Engine is acceptable
@@ -35,7 +36,6 @@ def run_migrations_offline() -> None:
 
     Calls to context.execute() here emit the given string to the
     script output.
-
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -59,9 +59,9 @@ def do_run_migrations(connection: Connection) -> None:
 
 # ฟังก์ชันสำหรับรัน migrations ในโหมด online โดยสร้าง async engine และใช้ connection แบบ async ในการรัน migrations
 async def run_async_migrations() -> None:
-    """In this scenario we need to create an Engine
+    """
+    In this scenario we need to create an Engine
     and associate a connection with the context.
-
     """
 
     connectable = async_engine_from_config(
