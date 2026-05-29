@@ -42,8 +42,8 @@ C_DIM        = (90, 90, 90)
 C_BG         = (28, 25, 22)
 
 # ── Constants ────────────────────────────────────────────────────────
-MIN_DET_SCORE       = 0.35
-MIN_REGISTER_SCORE  = 0.5
+MIN_DET_SCORE       = 0.60         # เพิ่มเป็น 0.60 เพื่อกรองสิ่งที่ไม่ใช่คนและใบหน้าที่เบลอ/ไกลเกินออก
+MIN_REGISTER_SCORE  = 0.70         # เพิ่มเป็น 0.70 เพื่อรับประกันความคมชัดตอนลงทะเบียนใบหน้าพนักงานใหม่
 CHECKOUT_WAIT_SEC   = 600        # 10 นาที
 CAMERA_W, CAMERA_H  = 1280, 720
 HEADER_H, FOOTER_H  = 62, 42
@@ -55,6 +55,7 @@ WINDOW_NAME          = "Face Attendance System"
 STATUS_MAP = {
     "checked_in":  (C_SUCCESS, "CHECKED IN"),
     "checked_out": (C_WARNING, "CHECKED OUT"),
+    "recognized":  (C_ACCENT,  "RECOGNIZED"),   # สถานะเปรียบเทียบใบหน้าปกติ
     "unknown":     (C_DANGER,  "NOT REGISTERED"),
 }
 _DEFAULT_STATUS = (C_INFO, "SCANNING")
@@ -378,7 +379,11 @@ def _handle_force(emp_id, name, conf, emp_status, events, action):
     if action == "check_in":
         emp_status[emp_id] = {"check_in_time": now, "status": "checked_in"}
     else:
-        emp_status[emp_id] = {"check_in_time": now - CHECKOUT_WAIT_SEC - 1, "status": "checked_out"}
+        emp_status[emp_id] = {
+            "check_in_time": now - CHECKOUT_WAIT_SEC - 1,
+            "status": "checked_out",
+            "check_out_time": now
+        }
 
     # ลบ event ประเภทเดียวกันของคนเดิมออก แล้วเพิ่มใหม่
     events[:] = [e for e in events if not (e["emp_id"] == emp_id and e["type"] == action)]
@@ -418,13 +423,30 @@ async def _recognize(face, emp_names, emp_status, events):
         return name, eid, conf, "checked_in"
 
     st = emp_status[eid]
-    if st["status"] == "checked_in" and now - st["check_in_time"] >= CHECKOUT_WAIT_SEC:
-        # ผ่าน 10 นาที → เช็คเอาท์อัตโนมัติ
-        st["status"] = "checked_out"
-        evt = _make_event("check_out", name, conf, eid)
-        events.append(evt)
-        print(f"[CHECK-OUT] {name} [{conf:.0%}] @ {evt['time']}")
-        return name, eid, conf, "checked_out"
+    if st["status"] == "checked_in":
+        # โชว์สีเขียว CHECKED IN เป็นเวลา 5 วินาทีแรกของการสแกน
+        if now - st["check_in_time"] < 5.0:
+            return name, eid, conf, "checked_in"
+        elif now - st["check_in_time"] >= CHECKOUT_WAIT_SEC:
+            # ผ่าน 10 นาที -> เช็คเอาท์อัตโนมัติ
+            st["status"] = "checked_out"
+            st["check_out_time"] = now
+            evt = _make_event("check_out", name, conf, eid)
+            events.append(evt)
+            print(f"[CHECK-OUT] {name} [{conf:.0%}] @ {evt['time']}")
+            return name, eid, conf, "checked_out"
+        else:
+            # หลังจาก 5 วินาที แสดงสถานะปกติเป็น RECOGNIZED
+            return name, eid, conf, "recognized"
+
+    elif st["status"] == "checked_out":
+        # โชว์สีส้ม CHECKED OUT เป็นเวลา 5 วินาทีแรกของการสแกน
+        checkout_time = st.get("check_out_time", 0.0)
+        if now - checkout_time < 5.0:
+            return name, eid, conf, "checked_out"
+        else:
+            # หลังจาก 5 วินาที แสดงสถานะปกติเป็น RECOGNIZED
+            return name, eid, conf, "recognized"
 
     return name, eid, conf, st["status"]
 

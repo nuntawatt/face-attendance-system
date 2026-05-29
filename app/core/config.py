@@ -73,7 +73,7 @@ class Settings(BaseSettings):
     # AI — YuNet + EdgeFace
     face_det_size: int = 320
     face_det_threshold: float = 0.5
-    face_recognition_threshold: float = 0.45
+    face_recognition_threshold: float = 0.58
     min_image_quality: float = 0.4
 
     # Control background camera processing in API server lifespan
