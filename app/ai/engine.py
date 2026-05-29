@@ -155,13 +155,10 @@ class FaceEngine:
     def _align_face(self, frame: np.ndarray, landmarks: np.ndarray) -> np.ndarray | None:
         """
         Align ใบหน้าด้วย similarity transform จาก 5 landmarks → ArcFace template 112×112
-
-        YuNet ให้ landmark ลำดับ: right_eye, left_eye, nose, right_mouth, left_mouth
-        ArcFace template ต้องการ:  left_eye, right_eye, nose, left_mouth, right_mouth
-        → ต้องสลับลำดับ
         """
-        # สลับลำดับ landmark ให้ตรงกับ ArcFace template
-        src_pts = landmarks[[1, 0, 2, 4, 3]]  # left_eye, right_eye, nose, left_mouth, right_mouth
+        # YuNet landmarks (viewer's left to right) มีลำดับตรงกับ ArcFace template coordinates อยู่แล้ว
+        # ลำดับคือ: 0=ตาขวาคน(ซ้ายรูป), 1=ตาซ้ายคน(ขวารูป), 2=จมูก, 3=มุมปากขวาคน(ซ้ายรูป), 4=มุมปากซ้ายคน(ขวารูป)
+        src_pts = landmarks
 
         # คำนวณ similarity transform
         M, _ = cv2.estimateAffinePartial2D(src_pts, _ARCFACE_REF, method=cv2.RANSAC)
